@@ -122,6 +122,76 @@ export default function HeroSection() {
           style={{ animation: 'rotate-slow 45s linear infinite reverse' }} />
       </div>
 
+      {/* ── LEFT FLOATING WIDGET ── Renders Delivered */}
+      <div
+        data-reveal="scale"
+        data-delay="600"
+        className="absolute left-6 xl:left-12 top-1/2 -translate-y-1/2 hidden lg:flex z-10 pointer-events-none"
+        style={{ animation: 'float-gentle 8s ease-in-out infinite' }}>
+        <div className="glass-dark rounded-2xl p-5 flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground font-medium tracking-wide mb-0.5">Renders Delivered</p>
+            <p className="text-lg font-bold text-foreground tracking-tight">12,400+</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT FLOATING WIDGETS ── Live Render (top) + Avg. Turnaround (bottom) */}
+      <div className="absolute right-6 xl:right-12 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-4 z-10 pointer-events-none">
+
+        {/* Widget 2 — Live Render bar chart */}
+        <div
+          data-reveal="scale"
+          data-delay="500"
+          className="glass-dark rounded-2xl p-5 flex-shrink-0"
+          style={{ animation: 'float-gentle-reverse 9s ease-in-out infinite' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-breathe" />
+            <span className="text-[10px] text-muted-foreground font-medium tracking-wide">Live Render</span>
+            <span className="ml-auto text-[10px] text-accent font-mono">98%</span>
+          </div>
+          <div className="flex items-end gap-1 h-10">
+            {[40, 65, 55, 80, 70, 90, 75, 95].map((h, i) => (
+              <div
+                key={i}
+                className="w-2 rounded-sm transition-all duration-1000"
+                style={{
+                  height: `${h}%`,
+                  background:
+                    i === 7
+                      ? 'var(--accent)'
+                      : i >= 5
+                      ? 'rgba(74,158,255,0.45)'
+                      : 'rgba(201,169,110,0.25)'
+                }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Widget 3 — Avg. Turnaround */}
+        <div
+          data-reveal="scale"
+          data-delay="700"
+          className="glass-dark rounded-2xl p-5 flex items-center gap-3.5 flex-shrink-0"
+          style={{ animation: 'float-gentle 8s ease-in-out infinite', animationDelay: '2.4s' }}>
+          <div className="w-10 h-10 rounded-xl bg-secondary/8 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" className="text-secondary" />
+              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-secondary" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground font-medium tracking-wide mb-0.5">Avg. Turnaround</p>
+            <p className="text-lg font-bold text-foreground tracking-tight">5 Days</p>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Content */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pt-32 pb-24 flex flex-col items-center text-center">
 
@@ -184,72 +254,6 @@ export default function HeroSection() {
               <div className="absolute top-0 left-0 w-1/4 h-full bg-gold-shimmer animate-light-sweep" />
             </div>
           </button>
-        </div>
-
-        {/* Floating stat widgets */}
-        <div className="relative mt-20 w-full max-w-3xl hidden sm:flex items-end justify-between gap-4">
-          {/* Widget 1 */}
-          <div
-            data-reveal="scale"
-            data-delay="600"
-            className="glass-dark rounded-2xl p-5 animate-float flex items-center gap-3.5 flex-shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground font-medium tracking-wide mb-0.5">Renders Delivered</p>
-              <p className="text-lg font-bold text-foreground tracking-tight">12,400+</p>
-            </div>
-          </div>
-
-          {/* Widget 2 — center, elevated */}
-          <div
-            data-reveal="scale"
-            data-delay="500"
-            className="glass-dark rounded-2xl p-5 animate-float-reverse -mb-6 flex-shrink-0"
-            style={{ animationDelay: '1.2s' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-accent animate-breathe" />
-              <span className="text-[10px] text-muted-foreground font-medium tracking-wide">Live Render</span>
-              <span className="ml-auto text-[10px] text-accent font-mono">98%</span>
-            </div>
-            <div className="flex items-end gap-1 h-10">
-              {[40, 65, 55, 80, 70, 90, 75, 95].map((h, i) => (
-                <div
-                  key={i}
-                  className="w-2 rounded-sm transition-all duration-1000"
-                  style={{
-                    height: `${h}%`,
-                    background:
-                      i === 7
-                        ? 'var(--accent)'
-                        : i >= 5
-                        ? 'rgba(74,158,255,0.45)'
-                        : 'rgba(201,169,110,0.25)'
-                  }} />
-              ))}
-            </div>
-          </div>
-
-          {/* Widget 3 */}
-          <div
-            data-reveal="scale"
-            data-delay="700"
-            className="glass-dark rounded-2xl p-5 animate-float flex items-center gap-3.5 flex-shrink-0"
-            style={{ animationDelay: '2.4s' }}>
-            <div className="w-10 h-10 rounded-xl bg-secondary/8 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" className="text-secondary" />
-                <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-secondary" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground font-medium tracking-wide mb-0.5">Avg. Turnaround</p>
-              <p className="text-lg font-bold text-foreground tracking-tight">5 Days</p>
-            </div>
-          </div>
         </div>
 
         {/* Scroll indicator */}
