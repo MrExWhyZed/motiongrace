@@ -139,13 +139,13 @@ export default function TestimonialsSection() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
 
         .testimonials-section {
           padding: 72px 24px;
           position: relative;
           overflow: hidden;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           background: transparent;
         }
 
@@ -176,7 +176,7 @@ export default function TestimonialsSection() {
           margin-bottom: 56px;
         }
         .testimonials-eyebrow {
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 10px;
           font-weight: 600;
           letter-spacing: 0.22em;
@@ -403,7 +403,7 @@ export default function TestimonialsSection() {
           justify-content: center;
           font-size: 11px;
           font-weight: 600;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           letter-spacing: 0.05em;
           color: var(--accent);
           background: color-mix(in srgb, var(--accent) 12%, transparent);
