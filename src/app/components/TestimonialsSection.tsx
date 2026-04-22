@@ -139,7 +139,7 @@ export default function TestimonialsSection() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         .testimonials-section {
           padding: 72px 24px;
@@ -186,7 +186,7 @@ export default function TestimonialsSection() {
           margin-bottom: 12px;
         }
         .testimonials-title {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: 'Inter', sans-serif;
           font-size: clamp(2rem, 5vw, 3.5rem);
           font-weight: 700;
           letter-spacing: -0.01em;
@@ -338,7 +338,7 @@ export default function TestimonialsSection() {
 
         /* Big decorative quote */
         .hex-quote-mark {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: 'Inter', sans-serif;
           font-size: 72px;
           line-height: 0.6;
           color: var(--accent);
@@ -357,7 +357,7 @@ export default function TestimonialsSection() {
 
         /* Quote text */
         .hex-quote {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: 'Inter', sans-serif;
           font-size: 15px;
           font-weight: 300;
           line-height: 1.8;
