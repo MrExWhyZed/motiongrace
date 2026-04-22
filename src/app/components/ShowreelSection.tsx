@@ -282,7 +282,7 @@ export default function ShowreelSection() {
 
         .sr-root {
           padding: 7rem 1.5rem 8rem;
-          background: #080808;
+          background: #04040A;
           position: relative;
           overflow: hidden;
         }
