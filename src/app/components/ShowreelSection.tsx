@@ -5,572 +5,750 @@ import { useState, useEffect, useRef } from "react";
 const reelItems = [
   {
     id: 1,
-    category: "Fragrance",
-    title: "Nocturne Parfum",
-    client: "Maison Élite",
-    image: "https://images.unsplash.com/photo-1541643600914-78b084683702?w=800&q=80",
-    accent: "#C9A96E",
-    accentRgb: "201,169,110",
-    tag: "01",
-    description: "An olfactory journey into darkness and desire.",
+    category: 'Fragrance',
+    title: 'Nocturne Parfum',
+    client: 'Maison Élite',
+    image: "https://img.rocket.new/generatedImages/rocket_gen_img_1063c0052-1768622315711.png",
+    alt: 'Luxury perfume bottle in deep darkness with gold light refraction',
+    accent: '#C9A96E',
+    accentRgb: '201,169,110',
+    span: 'tall'
   },
   {
     id: 2,
-    category: "Skincare",
-    title: "Lumière Serum",
-    client: "Glacé Beauty",
-    image: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=800&q=80",
-    accent: "#7DD3FC",
-    accentRgb: "125,211,252",
-    tag: "02",
-    description: "Clinical precision meets crystalline purity.",
+    category: 'Skincare',
+    title: 'Lumière Serum',
+    client: 'Glacé Beauty',
+    image: "https://images.unsplash.com/photo-1619407884060-54145a659baf?w=800",
+    alt: 'Minimalist skincare serum bottle on reflective surface',
+    accent: '#4A9EFF',
+    accentRgb: '74,158,255',
+    span: 'normal'
   },
   {
     id: 3,
-    category: "Cosmetics",
-    title: "Velvet Lip Kit",
-    client: "Rouge Atelier",
-    image: "https://images.unsplash.com/photo-1586495777744-4e6232bf6868?w=800&q=80",
-    accent: "#C084FC",
-    accentRgb: "192,132,252",
-    tag: "03",
-    description: "Couture colour for the unapologetically bold.",
+    category: 'Cosmetics',
+    title: 'Velvet Lip Kit',
+    client: 'Rouge Atelier',
+    image: "https://img.rocket.new/generatedImages/rocket_gen_img_16c0b74ab-1769009930510.png",
+    alt: 'Luxury lipstick cosmetics product on dark marble',
+    accent: '#8B5CF6',
+    accentRgb: '139,92,246',
+    span: 'normal'
   },
   {
     id: 4,
-    category: "Haircare",
-    title: "Aura Oil",
-    client: "Silk & Stone",
-    image: "https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=800&q=80",
-    accent: "#C9A96E",
-    accentRgb: "201,169,110",
-    tag: "04",
-    description: "Botanical intelligence, pure radiance.",
-  },
+    category: 'Haircare',
+    title: 'Aura Oil',
+    client: 'Silk & Stone',
+    image: "https://images.unsplash.com/photo-1669212408620-957229726535?w=1200",
+    alt: 'Hair oil bottle with botanical ingredients',
+    accent: '#C9A96E',
+    accentRgb: '201,169,110',
+    span: 'wide'
+  }
 ];
 
-function useInView(threshold = 0.1) {
+function useIntersectionObserver(options = {}) {
   const ref = useRef(null);
-  const [inView, setInView] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setInView(true); },
-      { threshold }
-    );
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1, ...options });
+
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
   }, []);
-  return { ref, inView };
+
+  return [ref, isVisible];
 }
 
-function CinemaCard({ item, index, variant = "default" }) {
+function ParticleField({ accent, accentRgb, active }) {
+  const particles = Array.from({ length: 12 }, (_, i) => i);
+  return (
+    <div className="particle-field" style={{ opacity: active ? 1 : 0 }}>
+      {particles.map(i => (
+        <div
+          key={i}
+          className="particle"
+          style={{
+            '--accent': accent,
+            '--delay': `${(i * 0.15) % 1.8}s`,
+            '--x': `${10 + (i * 37 % 80)}%`,
+            '--size': `${2 + (i % 3)}px`,
+            '--duration': `${2 + (i % 3) * 0.8}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ScanLine({ active }) {
+  return (
+    <div
+      className="scan-line"
+      style={{ opacity: active ? 1 : 0 }}
+    />
+  );
+}
+
+function Card({ item, delay, className, children, style }) {
   const [hovered, setHovered] = useState(false);
+  const [sectionRef, visible] = useIntersectionObserver();
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const cardRef = useRef(null);
-  const { ref: revealRef, inView } = useInView(0.08);
 
   const handleMouseMove = (e) => {
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
     setMousePos({
       x: (e.clientX - rect.left) / rect.width,
       y: (e.clientY - rect.top) / rect.height,
     });
   };
 
-  const setRef = (el) => {
-    cardRef.current = el;
-    revealRef.current = el;
-  };
-
-  const tiltX = hovered ? (mousePos.y - 0.5) * -6 : 0;
-  const tiltY = hovered ? (mousePos.x - 0.5) * 6 : 0;
-
-  const isHero = variant === "hero";
-  const isWide = variant === "wide";
-
   return (
     <div
-      ref={setRef}
+      ref={sectionRef}
+      className={`card-wrapper ${className}`}
       style={{
-        position: "relative",
-        borderRadius: "20px",
-        overflow: "hidden",
-        cursor: "pointer",
-        height: isHero ? "100%" : isWide ? "320px" : "300px",
-        minHeight: isHero ? "600px" : isWide ? "280px" : "260px",
-        opacity: inView ? 1 : 0,
-        transform: inView
-          ? `perspective(1200px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(0px)`
-          : "translateY(60px)",
-        transition: inView
-          ? `opacity 0.9s cubic-bezier(0.16,1,0.3,1) ${index * 120}ms, transform ${hovered ? "0.1s ease-out" : `0.9s cubic-bezier(0.16,1,0.3,1) ${index * 120}ms`}`
-          : "none",
-        willChange: "transform",
-        transformStyle: "preserve-3d",
+        '--delay': `${delay}ms`,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.96)',
+        transition: `opacity 0.9s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.9s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+        ...style
       }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setMousePos({ x: 0.5, y: 0.5 }); }}
-      onMouseMove={handleMouseMove}
     >
-      {/* Background image */}
       <div
+        ref={cardRef}
+        className={`card ${hovered ? 'card-hovered' : ''}`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onMouseMove={handleMouseMove}
         style={{
-          position: "absolute",
-          inset: 0,
-          transform: hovered ? "scale(1.08)" : "scale(1.01)",
-          transition: "transform 2.4s cubic-bezier(0.16,1,0.3,1)",
+          '--accent': item.accent,
+          '--accent-rgb': item.accentRgb,
+          '--mx': mousePos.x,
+          '--my': mousePos.y,
         }}
       >
-        <img
-          src={item.image}
-          alt={item.title}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-        />
-      </div>
-
-      {/* Grain texture */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        opacity: 0.04,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        backgroundSize: "120px",
-        mixBlendMode: "overlay",
-        pointerEvents: "none",
-      }} />
-
-      {/* Bottom gradient */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        background: `linear-gradient(to top, rgba(3,3,6,0.96) 0%, rgba(3,3,6,0.55) 35%, rgba(3,3,6,0.1) 65%, transparent 100%)`,
-      }} />
-
-      {/* Top gradient */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        background: `linear-gradient(to bottom, rgba(3,3,6,0.4) 0%, transparent 30%)`,
-      }} />
-
-      {/* Accent spotlight */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(${item.accentRgb},0.15) 0%, transparent 55%)`,
-        opacity: hovered ? 1 : 0,
-        transition: "opacity 0.5s ease",
-        pointerEvents: "none",
-      }} />
-
-      {/* Border */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        borderRadius: "20px",
-        boxShadow: hovered
-          ? `inset 0 0 0 1px rgba(${item.accentRgb},0.4), 0 40px 80px rgba(0,0,0,0.7)`
-          : `inset 0 0 0 1px rgba(255,255,255,0.07)`,
-        transition: "box-shadow 0.6s ease",
-        pointerEvents: "none",
-      }} />
-
-      {/* Top row */}
-      <div style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        padding: "20px 22px",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-      }}>
-        <span style={{
-          fontFamily: "'Courier New', monospace",
-          fontSize: "10px",
-          letterSpacing: "0.3em",
-          color: `rgba(${item.accentRgb},0.6)`,
-          opacity: hovered ? 1 : 0.45,
-          transition: "opacity 0.5s ease",
-        }}>
-          {item.tag}
-        </span>
-        <span style={{
-          fontSize: "8px",
-          fontWeight: 700,
-          letterSpacing: "0.22em",
-          textTransform: "uppercase",
-          padding: "6px 12px",
-          borderRadius: "100px",
-          background: `rgba(${item.accentRgb},0.1)`,
-          color: item.accent,
-          border: `1px solid rgba(${item.accentRgb},0.22)`,
-          backdropFilter: "blur(12px)",
-          opacity: hovered ? 1 : 0.65,
-          transition: "opacity 0.5s ease",
-        }}>
-          {item.category}
-        </span>
-      </div>
-
-      {/* Bottom content */}
-      <div style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        padding: "24px 24px 26px",
-      }}>
-        {/* Accent bar */}
-        <div style={{
-          height: "1px",
-          background: `linear-gradient(to right, rgba(${item.accentRgb},0.7), transparent)`,
-          width: hovered ? "55%" : "20px",
-          marginBottom: "14px",
-          transition: "width 0.7s cubic-bezier(0.16,1,0.3,1)",
-        }} />
-
-        <h3 style={{
-          fontFamily: "'Georgia', 'Times New Roman', serif",
-          fontSize: isHero ? "clamp(1.5rem, 2.2vw, 2rem)" : "1.15rem",
-          fontWeight: 900,
-          color: "#fff",
-          lineHeight: 1.1,
-          letterSpacing: "-0.02em",
-          marginBottom: "8px",
-          transform: hovered ? "translateY(-2px)" : "translateY(0)",
-          transition: "transform 0.5s cubic-bezier(0.16,1,0.3,1)",
-        }}>
-          {item.title}
-        </h3>
-
-        {isHero && (
-          <p style={{
-            fontSize: "11px",
-            color: "rgba(255,255,255,0.45)",
-            letterSpacing: "0.04em",
-            marginBottom: "14px",
-            lineHeight: 1.5,
-            maxWidth: "240px",
-            opacity: hovered ? 1 : 0,
-            transform: hovered ? "translateY(0)" : "translateY(6px)",
-            transition: "opacity 0.6s ease 80ms, transform 0.6s ease 80ms",
-          }}>
-            {item.description}
-          </p>
-        )}
-
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          opacity: hovered ? 1 : 0.45,
-          transform: hovered ? "translateY(0)" : "translateY(4px)",
-          transition: "opacity 0.5s ease 60ms, transform 0.5s ease 60ms",
-        }}>
-          <p style={{
-            fontFamily: "'Courier New', monospace",
-            fontSize: "10px",
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.4)",
-          }}>
-            {item.client}
-          </p>
-          {(isHero || isWide) && (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              transform: hovered ? "translateX(0)" : "translateX(10px)",
-              transition: "transform 0.5s cubic-bezier(0.16,1,0.3,1) 80ms",
-            }}>
-              <span style={{
-                fontSize: "9px",
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-                color: item.accent,
-                fontFamily: "'Courier New', monospace",
-              }}>View</span>
-              <div style={{
-                width: "22px",
-                height: "22px",
-                borderRadius: "50%",
-                background: `rgba(${item.accentRgb},0.12)`,
-                border: `1px solid rgba(${item.accentRgb},0.3)`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12h14M12 5l7 7-7 7" stroke={item.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </div>
-          )}
+        {/* Image */}
+        <div className="card-image-wrap">
+          <img
+            src={item.image}
+            alt={item.alt}
+            className="card-image"
+            style={{
+              transform: hovered ? 'scale(1.07)' : 'scale(1)',
+              transition: 'transform 3s cubic-bezier(0.16,1,0.3,1)',
+            }}
+          />
         </div>
+
+        {/* Gradient overlays */}
+        <div className="card-gradient-base" />
+        <div className="card-gradient-side" />
+        <div
+          className="card-glow"
+          style={{ opacity: hovered ? 1 : 0 }}
+        />
+
+        {/* Mouse-follow light */}
+        <div
+          className="card-mouse-light"
+          style={{
+            opacity: hovered ? 0.15 : 0,
+            background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(${item.accentRgb},0.5) 0%, transparent 60%)`,
+          }}
+        />
+
+        {/* Scan line effect */}
+        <ScanLine active={hovered} />
+
+        {/* Particles */}
+        <ParticleField accent={item.accent} accentRgb={item.accentRgb} active={hovered} />
+
+        {/* Corner decorations */}
+        <div className="corner corner-tl" style={{ opacity: hovered ? 1 : 0 }} />
+        <div className="corner corner-tr" style={{ opacity: hovered ? 1 : 0 }} />
+        <div className="corner corner-bl" style={{ opacity: hovered ? 1 : 0 }} />
+        <div className="corner corner-br" style={{ opacity: hovered ? 1 : 0 }} />
+
+        {/* Content */}
+        {children({ hovered, item })}
       </div>
     </div>
   );
 }
 
+function CardContent({ hovered, item, wide = false }) {
+  return (
+    <div className={`card-content ${wide ? 'card-content-wide' : ''}`}>
+      <div className="card-content-left">
+        <span
+          className="category-badge"
+          style={{
+            background: `rgba(${item.accentRgb},0.12)`,
+            color: item.accent,
+            borderColor: `rgba(${item.accentRgb},0.25)`,
+            transform: hovered ? 'translateY(0)' : 'translateY(4px)',
+            opacity: hovered ? 1 : 0.8,
+            transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)',
+          }}
+        >
+          <span
+            className="category-dot"
+            style={{
+              background: item.accent,
+              boxShadow: hovered ? `0 0 6px ${item.accent}` : 'none',
+            }}
+          />
+          {item.category}
+        </span>
+
+        <h3
+          className="card-title"
+          style={{
+            transform: hovered ? 'translateY(0)' : 'translateY(6px)',
+            transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1) 0.05s',
+          }}
+        >
+          {item.title}
+        </h3>
+
+        {item.client && (
+          <p
+            className="card-client"
+            style={{
+              transform: hovered ? 'translateY(0)' : 'translateY(6px)',
+              opacity: hovered ? 0.6 : 0.4,
+              transition: 'all 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s',
+            }}
+          >
+            {item.client}
+          </p>
+        )}
+      </div>
+
+      {wide && (
+        <div
+          className="view-btn"
+          style={{
+            opacity: hovered ? 1 : 0,
+            transform: hovered ? 'translateY(0) translateX(0)' : 'translateY(8px) translateX(8px)',
+            transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s',
+            borderColor: `rgba(${item.accentRgb},0.3)`,
+          }}
+        >
+          <span>View Case</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ShowreelSection() {
-  const { ref: headerRef, inView: headerVisible } = useInView(0.15);
-  const [scrollY, setScrollY] = useState(0);
+  const [headerRef, headerVisible] = useIntersectionObserver();
+  const [countRef, countVisible] = useIntersectionObserver();
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    if (!countVisible) return;
+    let frame;
+    let start = null;
+    const target = 48;
+    const duration = 1800;
+    const animate = (ts) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * target));
+      if (progress < 1) frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [countVisible]);
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(160deg, #060608 0%, #0a0a0f 40%, #07070c 100%)",
-      fontFamily: "'Georgia', serif",
-    }}>
+    <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,300;1,600&family=DM+Mono:wght@300;400;500&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #060608; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #060608; }
-        ::-webkit-scrollbar-thumb { background: rgba(201,169,110,0.3); border-radius: 2px; }
-        .grid-showreel {
+        .showreel-section {
+          padding: 7rem 1.5rem 8rem;
+          background: #080808;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .showreel-section::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: 
+            radial-gradient(ellipse 60% 40% at 20% 0%, rgba(201,169,110,0.04) 0%, transparent 70%),
+            radial-gradient(ellipse 40% 50% at 80% 100%, rgba(139,92,246,0.04) 0%, transparent 70%);
+          pointer-events: none;
+        }
+
+        .showreel-inner {
+          max-width: 1280px;
+          margin: 0 auto;
+          position: relative;
+        }
+
+        /* Divider */
+        .section-divider {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          margin-bottom: 4rem;
+        }
+        .divider-line {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(201,169,110,0.3), transparent);
+        }
+        .divider-diamond {
+          width: 6px;
+          height: 6px;
+          background: #C9A96E;
+          transform: rotate(45deg);
+          box-shadow: 0 0 12px rgba(201,169,110,0.5);
+        }
+
+        /* Header */
+        .header-row {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+          margin-bottom: 4rem;
+        }
+        @media (min-width: 640px) {
+          .header-row {
+            flex-direction: row;
+            align-items: flex-end;
+            justify-content: space-between;
+          }
+        }
+
+        .header-left {
+          position: relative;
+        }
+
+        .header-eyebrow {
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          color: rgba(201,169,110,0.7);
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .header-eyebrow::before {
+          content: '';
+          display: block;
+          width: 24px;
+          height: 1px;
+          background: rgba(201,169,110,0.5);
+        }
+
+        .header-title {
+          font-size: clamp(1.5rem, 5vw, 3.2rem);
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #f5f0e8;
+          line-height: 1.1;
+          margin: 0;
+        }
+
+        .header-title-gold {
+          background: linear-gradient(135deg, #C9A96E 0%, #f0d49a 40%, #C9A96E 70%, #8a6a30 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          position: relative;
+        }
+
+        .header-right {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
+        @media (min-width: 640px) {
+          .header-right { align-items: flex-end; }
+        }
+
+        .header-tagline {
+          font-size: 0.8rem;
+          color: rgba(245,240,232,0.35);
+          font-weight: 300;
+          letter-spacing: 0.06em;
+          max-width: 220px;
+          line-height: 1.7;
+          text-align: right;
+        }
+
+        .header-counter {
+          display: flex;
+          align-items: baseline;
+          gap: 0.25rem;
+        }
+        .counter-num {
+          font-size: 2rem;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          background: linear-gradient(135deg, #C9A96E, #f0d49a);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-variant-numeric: tabular-nums;
+        }
+        .counter-label {
+          font-size: 0.65rem;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: rgba(245,240,232,0.3);
+        }
+
+        /* GRID */
+        .bento-grid {
           display: grid;
           grid-template-columns: 1fr;
           gap: 12px;
         }
         @media (min-width: 640px) {
-          .grid-showreel {
-            grid-template-columns: 1fr 1fr;
+          .bento-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
         }
         @media (min-width: 1024px) {
-          .grid-showreel {
-            grid-template-columns: 1fr 1fr 1fr;
+          .bento-grid {
+            grid-template-columns: repeat(3, 1fr);
             grid-template-rows: auto auto;
           }
-          .card-hero {
-            grid-row: 1 / 3;
-            grid-column: 1 / 2;
+        }
+
+        .card-wrapper {
+          position: relative;
+        }
+
+        .card-tall {
+          min-height: 460px;
+        }
+        @media (min-width: 1024px) {
+          .card-tall {
+            grid-row: span 2;
+            min-height: unset;
           }
-          .card-2 { grid-column: 2 / 3; grid-row: 1 / 2; }
-          .card-3 { grid-column: 3 / 4; grid-row: 1 / 2; }
-          .card-wide { grid-column: 2 / 4; grid-row: 2 / 3; }
+        }
+        .card-normal { min-height: 300px; }
+        .card-wide { min-height: 300px; }
+        @media (min-width: 1024px) {
+          .card-wide {
+            grid-column: span 2;
+          }
+        }
+
+        /* Card */
+        .card {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          min-height: inherit;
+          border-radius: 20px;
+          overflow: hidden;
+          cursor: pointer;
+          background: #111;
+          border: 1px solid rgba(255,255,255,0.06);
+          transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+        .card-hovered {
+          border-color: rgba(var(--accent-rgb), 0.2);
+          box-shadow: 
+            0 0 0 1px rgba(var(--accent-rgb), 0.1),
+            0 32px 64px rgba(0,0,0,0.6),
+            0 0 80px rgba(var(--accent-rgb), 0.06);
+        }
+
+        /* Image */
+        .card-image-wrap {
+          position: absolute;
+          inset: 0;
+        }
+        .card-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
+        }
+
+        /* Overlays */
+        .card-gradient-base {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to top, rgba(5,5,5,0.97) 0%, rgba(5,5,5,0.2) 50%, rgba(5,5,5,0.1) 100%);
+        }
+        .card-gradient-side {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to right, rgba(5,5,5,0.4) 0%, transparent 60%);
+        }
+        .card-glow {
+          position: absolute;
+          inset: 0;
+          border-radius: 20px;
+          box-shadow: inset 0 0 80px rgba(var(--accent-rgb), 0.12);
+          transition: opacity 1s ease;
+          pointer-events: none;
+        }
+        .card-mouse-light {
+          position: absolute;
+          inset: 0;
+          transition: opacity 0.4s ease;
+          pointer-events: none;
+          mix-blend-mode: screen;
+        }
+
+        /* Scan line */
+        .scan-line {
+          position: absolute;
+          left: 0; right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+          animation: scan 3s linear infinite;
+          transition: opacity 0.5s;
+          pointer-events: none;
+        }
+        @keyframes scan {
+          0% { top: 0%; }
+          100% { top: 100%; }
+        }
+
+        /* Particles */
+        .particle-field {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          transition: opacity 0.8s ease;
+        }
+        .particle {
+          position: absolute;
+          bottom: 20%;
+          left: var(--x);
+          width: var(--size);
+          height: var(--size);
+          border-radius: 50%;
+          background: var(--accent);
+          box-shadow: 0 0 6px var(--accent);
+          animation: float-up var(--duration) ease-in var(--delay) infinite;
+          opacity: 0;
+        }
+        @keyframes float-up {
+          0% { transform: translateY(0) scale(1); opacity: 0; }
+          20% { opacity: 0.8; }
+          80% { opacity: 0.3; }
+          100% { transform: translateY(-120px) scale(0.3); opacity: 0; }
+        }
+
+        /* Corner decorations */
+        .corner {
+          position: absolute;
+          width: 16px;
+          height: 16px;
+          transition: opacity 0.5s ease;
+          pointer-events: none;
+        }
+        .corner::before, .corner::after {
+          content: '';
+          position: absolute;
+          background: rgba(var(--accent-rgb), 0.6);
+        }
+        .corner::before { width: 100%; height: 1px; }
+        .corner::after { height: 100%; width: 1px; }
+        .corner-tl { top: 12px; left: 12px; }
+        .corner-tl::before { top: 0; left: 0; }
+        .corner-tl::after { top: 0; left: 0; }
+        .corner-tr { top: 12px; right: 12px; }
+        .corner-tr::before { top: 0; right: 0; }
+        .corner-tr::after { top: 0; right: 0; }
+        .corner-bl { bottom: 12px; left: 12px; }
+        .corner-bl::before { bottom: 0; left: 0; }
+        .corner-bl::after { bottom: 0; left: 0; }
+        .corner-br { bottom: 12px; right: 12px; }
+        .corner-br::before { bottom: 0; right: 0; }
+        .corner-br::after { bottom: 0; right: 0; }
+
+        /* Card content */
+        .card-content {
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          padding: 1.75rem;
+        }
+        .card-content-wide {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+        }
+
+        .category-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          padding: 0.35rem 0.75rem;
+          border-radius: 100px;
+          border: 1px solid;
+          margin-bottom: 0.85rem;
+          transition: all 0.6s cubic-bezier(0.16,1,0.3,1);
+        }
+        .category-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          transition: box-shadow 0.4s;
+        }
+
+        .card-title {
+          font-size: 1.15rem;
+          font-weight: 800;
+          letter-spacing: -0.025em;
+          color: #f5f0e8;
+          margin: 0 0 0.4rem;
+          line-height: 1.2;
+        }
+        .card-tall .card-title { font-size: 1.35rem; }
+
+        .card-client {
+          font-size: 0.7rem;
+          color: rgba(245,240,232,0.5);
+          font-weight: 300;
+          letter-spacing: 0.08em;
+          margin: 0;
+          transition: all 0.7s ease;
+        }
+
+        /* View btn */
+        .view-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.6rem 1.2rem;
+          border-radius: 100px;
+          border: 1px solid;
+          background: rgba(255,255,255,0.04);
+          backdrop-filter: blur(12px);
+          color: rgba(245,240,232,0.75);
+          font-size: 0.7rem;
+          font-weight: 500;
+          letter-spacing: 0.06em;
+          white-space: nowrap;
+          flex-shrink: 0;
+          transition: all 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s;
+        }
+
+        /* Header reveal */
+        .reveal-up {
+          opacity: 0;
+          transform: translateY(32px);
+          transition: opacity 0.9s cubic-bezier(0.16,1,0.3,1), transform 0.9s cubic-bezier(0.16,1,0.3,1);
+        }
+        .reveal-up.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .reveal-up.delay-200 {
+          transition-delay: 200ms;
+        }
+
+        /* Noise overlay */
+        .noise-overlay {
+          position: absolute;
+          inset: 0;
+          opacity: 0.025;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+          background-size: 200px 200px;
+          pointer-events: none;
         }
       `}</style>
 
-      <section style={{
-        padding: "80px 24px 120px",
-        maxWidth: "1320px",
-        margin: "0 auto",
-        position: "relative",
-      }}>
-
-        {/* Ambient glows */}
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "900px",
-          height: "500px",
-          background: "radial-gradient(ellipse, rgba(201,169,110,0.03) 0%, transparent 70%)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }} />
-
-        <div style={{ position: "relative", zIndex: 1 }}>
+      <section className="showreel-section">
+        <div className="noise-overlay" />
+        <div className="showreel-inner">
 
           {/* Divider */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "20px",
-            marginBottom: "72px",
-          }}>
-            <div style={{ height: "1px", flex: 1, background: "rgba(255,255,255,0.06)" }} />
-            <span style={{
-              fontFamily: "'DM Mono', 'Courier New', monospace",
-              fontSize: "9px",
-              letterSpacing: "0.35em",
-              textTransform: "uppercase",
-              color: "rgba(201,169,110,0.35)",
-            }}>
-              Portfolio · 2024
-            </span>
-            <div style={{ height: "1px", flex: 1, background: "rgba(255,255,255,0.06)" }} />
+          <div className="section-divider">
+            <div className="divider-line" />
+            <div className="divider-diamond" />
+            <div className="divider-line" />
           </div>
 
           {/* Header */}
-          <div
-            ref={headerRef}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "40px",
-              marginBottom: "56px",
-            }}
-          >
-            {/* Eyebrow */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "14px",
-              opacity: headerVisible ? 1 : 0,
-              transform: headerVisible ? "translateY(0)" : "translateY(20px)",
-              transition: "opacity 0.9s ease, transform 0.9s ease",
-            }}>
-              <div style={{
-                width: "32px",
-                height: "1px",
-                background: "rgba(201,169,110,0.5)",
-              }} />
-              <span style={{
-                fontFamily: "'DM Mono', 'Courier New', monospace",
-                fontSize: "9px",
-                letterSpacing: "0.32em",
-                textTransform: "uppercase",
-                color: "rgba(201,169,110,0.7)",
-              }}>
-                Selected Work
-              </span>
+          <div className="header-row" ref={headerRef}>
+            <div
+              className={`header-left reveal-up ${headerVisible ? 'visible' : ''}`}
+            >
+              <p className="header-eyebrow">Selected Work</p>
+              <h2 className="header-title">
+                See What&apos;s{' '}
+                <span className="header-title-gold">Possible</span>
+              </h2>
             </div>
 
-            <div style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              gap: "32px",
-            }}>
-              {/* Headline */}
-              <h2 style={{
-                fontFamily: "'Cormorant Garamond', 'Georgia', serif",
-                fontSize: "clamp(2.4rem, 6vw, 4.5rem)",
-                fontWeight: 700,
-                letterSpacing: "-0.025em",
-                lineHeight: 1.0,
-                color: "#f0ece4",
-                opacity: headerVisible ? 1 : 0,
-                transform: headerVisible ? "translateY(0)" : "translateY(28px)",
-                transition: "opacity 1s ease 80ms, transform 1s ease 80ms",
-              }}>
-                See What's{" "}
-                <em style={{
-                  fontStyle: "italic",
-                  background: "linear-gradient(135deg, #B8935A 0%, #E8D4A0 42%, #C9A96E 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}>
-                  Possible
-                </em>
-              </h2>
-
-              {/* Stats + description */}
-              <div style={{
-                opacity: headerVisible ? 1 : 0,
-                transform: headerVisible ? "translateY(0)" : "translateY(20px)",
-                transition: "opacity 1s ease 200ms, transform 1s ease 200ms",
-                maxWidth: "340px",
-              }}>
-                <p style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: "15px",
-                  fontWeight: 300,
-                  fontStyle: "italic",
-                  lineHeight: 1.7,
-                  letterSpacing: "0.02em",
-                  color: "rgba(240,236,228,0.45)",
-                  marginBottom: "20px",
-                }}>
-                  Where beauty meets computation. Every pixel, intentional.
-                </p>
-                <div style={{ display: "flex", gap: "28px" }}>
-                  {[
-                    { num: "04", label: "Projects" },
-                    { num: "03", label: "Brands" },
-                    { num: "100+", label: "Assets" },
-                  ].map(({ num, label }) => (
-                    <div key={label} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                      <span style={{
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: "20px",
-                        fontWeight: 600,
-                        color: "rgba(201,169,110,0.8)",
-                        lineHeight: 1,
-                      }}>{num}</span>
-                      <span style={{
-                        fontFamily: "'DM Mono', 'Courier New', monospace",
-                        fontSize: "8px",
-                        letterSpacing: "0.2em",
-                        textTransform: "uppercase",
-                        color: "rgba(255,255,255,0.25)",
-                      }}>{label}</span>
-                    </div>
-                  ))}
-                </div>
+            <div
+              className={`header-right reveal-up delay-200 ${headerVisible ? 'visible' : ''}`}
+            >
+              <div className="header-counter" ref={countRef}>
+                <span className="counter-num">{count}</span>
+                <span className="counter-label">+&nbsp;Projects</span>
               </div>
+              <p className="header-tagline">
+                Where beauty meets computation.
+              </p>
             </div>
           </div>
 
           {/* Bento Grid */}
-          <div className="grid-showreel">
-            <div className="card-hero">
-              <CinemaCard item={reelItems[0]} index={0} variant="hero" />
-            </div>
-            <div className="card-2">
-              <CinemaCard item={reelItems[1]} index={1} variant="default" />
-            </div>
-            <div className="card-3">
-              <CinemaCard item={reelItems[2]} index={2} variant="default" />
-            </div>
-            <div className="card-wide">
-              <CinemaCard item={reelItems[3]} index={3} variant="wide" />
-            </div>
-          </div>
+          <div className="bento-grid">
 
-          {/* Footer line */}
-          <div style={{
-            marginTop: "48px",
-            display: "flex",
-            alignItems: "center",
-            opacity: headerVisible ? 1 : 0,
-            transition: "opacity 1.2s ease 700ms",
-          }}>
-            <div style={{ height: "1px", flex: 1, background: "rgba(255,255,255,0.04)" }} />
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "0 24px",
-            }}>
-              {["CGI", "3D", "Motion"].map((t, i) => (
-                <span key={t} style={{
-                  fontFamily: "'DM Mono', 'Courier New', monospace",
-                  fontSize: "8px",
-                  letterSpacing: "0.3em",
-                  textTransform: "uppercase",
-                  color: "rgba(201,169,110,0.3)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                }}>
-                  {t}
-                  {i < 2 && <span style={{ display: "inline-block", width: "3px", height: "3px", borderRadius: "50%", background: "rgba(201,169,110,0.2)" }} />}
-                </span>
-              ))}
-            </div>
-            <div style={{ height: "1px", flex: 1, background: "rgba(255,255,255,0.04)" }} />
-          </div>
+            {/* Card 1: Fragrance — tall */}
+            <Card item={reelItems[0]} delay={0} className="card-wrapper card-tall">
+              {({ hovered, item }) => <CardContent hovered={hovered} item={item} />}
+            </Card>
 
+            {/* Card 2: Skincare */}
+            <Card item={reelItems[1]} delay={120} className="card-wrapper card-normal">
+              {({ hovered, item }) => <CardContent hovered={hovered} item={item} />}
+            </Card>
+
+            {/* Card 3: Cosmetics */}
+            <Card item={reelItems[2]} delay={240} className="card-wrapper card-normal">
+              {({ hovered, item }) => <CardContent hovered={hovered} item={item} />}
+            </Card>
+
+            {/* Card 4: Haircare — wide */}
+            <Card item={reelItems[3]} delay={360} className="card-wrapper card-wide">
+              {({ hovered, item }) => <CardContent hovered={hovered} item={item} wide />}
+            </Card>
+
+          </div>
         </div>
       </section>
-    </div>
+    </>
   );
 }
