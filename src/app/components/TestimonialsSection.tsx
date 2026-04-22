@@ -188,14 +188,14 @@ export default function TestimonialsSection() {
         .testimonials-title {
           font-family: 'Cormorant Garamond', serif;
           font-size: clamp(2rem, 5vw, 3.5rem);
-          font-weight: 300;
+          font-weight: 700;
           letter-spacing: -0.01em;
           color: var(--foreground, #f0ede8);
           line-height: 1.1;
           margin: 0;
         }
         .testimonials-title em {
-          font-style: italic;
+          font-style: normal;
           color: var(--primary, #C9A96E);
         }
 
@@ -359,7 +359,6 @@ export default function TestimonialsSection() {
         .hex-quote {
           font-family: 'Cormorant Garamond', serif;
           font-size: 15px;
-          font-style: italic;
           font-weight: 300;
           line-height: 1.8;
           color: var(--muted-foreground, rgba(255,255,255,0.65));
