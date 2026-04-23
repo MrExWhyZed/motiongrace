@@ -3,51 +3,51 @@
 import { useState, useEffect, useRef } from "react";
 
 const reelItems = [
-  {
-    id: 1,
-    category: 'Fragrance',
-    title: 'Nocturne Parfum',
-    client: 'Maison Élite',
-    image: "https://img.rocket.new/generatedImages/rocket_gen_img_1063c0052-1768622315711.png",
-    alt: 'Luxury perfume bottle in deep darkness with gold light refraction',
-    accent: '#C9A96E',
-    accentRgb: '201,169,110',
-    span: 'tall'
-  },
-  {
-    id: 2,
-    category: 'Skincare',
-    title: 'Lumière Serum',
-    client: 'Glacé Beauty',
-    image: "https://images.unsplash.com/photo-1619407884060-54145a659baf?w=800",
-    alt: 'Minimalist skincare serum bottle on reflective surface',
-    accent: '#4A9EFF',
-    accentRgb: '74,158,255',
-    span: 'normal'
-  },
-  {
-    id: 3,
-    category: 'Cosmetics',
-    title: 'Velvet Lip Kit',
-    client: 'Rouge Atelier',
-    image: "https://img.rocket.new/generatedImages/rocket_gen_img_16c0b74ab-1769009930510.png",
-    alt: 'Luxury lipstick cosmetics product on dark marble',
-    accent: '#8B5CF6',
-    accentRgb: '139,92,246',
-    span: 'normal'
-  },
-  {
-    id: 4,
-    category: 'Haircare',
-    title: 'Aura Oil',
-    client: 'Silk & Stone',
-    image: "https://images.unsplash.com/photo-1669212408620-957229726535?w=1200",
-    alt: 'Hair oil bottle with botanical ingredients',
-    accent: '#C9A96E',
-    accentRgb: '201,169,110',
-    span: 'wide'
-  }
-];
+{
+  id: 1,
+  category: 'Fragrance',
+  title: 'Nocturne Parfum',
+  client: 'Maison Élite',
+  image: "https://img.rocket.new/generatedImages/rocket_gen_img_1063c0052-1768622315711.png",
+  alt: 'Luxury perfume bottle in deep darkness with gold light refraction',
+  accent: '#C9A96E',
+  accentRgb: '201,169,110',
+  span: 'tall'
+},
+{
+  id: 2,
+  category: 'Skincare',
+  title: 'Lumière Serum',
+  client: 'Glacé Beauty',
+  image: "https://images.unsplash.com/photo-1619407884060-54145a659baf?w=800",
+  alt: 'Minimalist skincare serum bottle on reflective surface',
+  accent: '#4A9EFF',
+  accentRgb: '74,158,255',
+  span: 'normal'
+},
+{
+  id: 3,
+  category: 'Cosmetics',
+  title: 'Velvet Lip Kit',
+  client: 'Rouge Atelier',
+  image: "https://img.rocket.new/generatedImages/rocket_gen_img_16c0b74ab-1769009930510.png",
+  alt: 'Luxury lipstick cosmetics product on dark marble',
+  accent: '#8B5CF6',
+  accentRgb: '139,92,246',
+  span: 'normal'
+},
+{
+  id: 4,
+  category: 'Haircare',
+  title: 'Aura Oil',
+  client: 'Silk & Stone',
+  image: "https://images.unsplash.com/photo-1669212408620-957229726535?w=1200",
+  alt: 'Hair oil bottle with botanical ingredients',
+  accent: '#C9A96E',
+  accentRgb: '201,169,110',
+  span: 'wide'
+}];
+
 
 function useIntersectionObserver(options = {}) {
   const ref = useRef(null);
@@ -72,30 +72,30 @@ function ParticleField({ accent, accentRgb, active }) {
   const particles = Array.from({ length: 12 }, (_, i) => i);
   return (
     <div className="sr-particles" style={{ opacity: active ? 1 : 0 }}>
-      {particles.map(i => (
-        <div
-          key={i}
-          className="sr-particle"
-          style={{
-            '--accent': accent,
-            '--delay': `${(i * 0.15) % 1.8}s`,
-            '--x': `${10 + (i * 37 % 80)}%`,
-            '--size': `${2 + (i % 3)}px`,
-            '--duration': `${2 + (i % 3) * 0.8}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
+      {particles.map((i) =>
+      <div
+        key={i}
+        className="sr-particle"
+        style={{
+          '--accent': accent,
+          '--delay': `${i * 0.15 % 1.8}s`,
+          '--x': `${10 + i * 37 % 80}%`,
+          '--size': `${2 + i % 3}px`,
+          '--duration': `${2 + i % 3 * 0.8}s`
+        }} />
+
+      )}
+    </div>);
+
 }
 
 function ScanLine({ active }) {
   return (
     <div
       className="sr-scan"
-      style={{ opacity: active ? 1 : 0 }}
-    />
-  );
+      style={{ opacity: active ? 1 : 0 }} />);
+
+
 }
 
 function Card({ item, delay, className, children, style }) {
@@ -109,7 +109,7 @@ function Card({ item, delay, className, children, style }) {
     const rect = cardRef.current.getBoundingClientRect();
     setMousePos({
       x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height,
+      y: (e.clientY - rect.top) / rect.height
     });
   };
 
@@ -123,8 +123,8 @@ function Card({ item, delay, className, children, style }) {
         transform: visible ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.96)',
         transition: `opacity 0.9s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.9s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
         ...style
-      }}
-    >
+      }}>
+
       <div
         ref={cardRef}
         className={`sr-card ${hovered ? 'sr-card-hovered' : ''}`}
@@ -135,9 +135,9 @@ function Card({ item, delay, className, children, style }) {
           '--accent': item.accent,
           '--accent-rgb': item.accentRgb,
           '--mx': mousePos.x,
-          '--my': mousePos.y,
-        }}
-      >
+          '--my': mousePos.y
+        }}>
+
         {/* Image */}
         <div className="sr-img-wrap">
           <img
@@ -146,9 +146,9 @@ function Card({ item, delay, className, children, style }) {
             className="sr-img"
             style={{
               transform: hovered ? 'scale(1.07)' : 'scale(1)',
-              transition: 'transform 3s cubic-bezier(0.16,1,0.3,1)',
-            }}
-          />
+              transition: 'transform 3s cubic-bezier(0.16,1,0.3,1)'
+            }} />
+
         </div>
 
         {/* Gradient overlays */}
@@ -161,9 +161,9 @@ function Card({ item, delay, className, children, style }) {
           className="sr-mouse-light"
           style={{
             opacity: hovered ? 0.15 : 0,
-            background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(${item.accentRgb},0.5) 0%, transparent 60%)`,
-          }}
-        />
+            background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(${item.accentRgb},0.5) 0%, transparent 60%)`
+          }} />
+
 
         {/* Scan line effect */}
         <ScanLine active={hovered} />
@@ -180,8 +180,8 @@ function Card({ item, delay, className, children, style }) {
         {/* Content */}
         {children({ hovered, item })}
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 function CardContent({ hovered, item, wide = false }) {
@@ -196,16 +196,16 @@ function CardContent({ hovered, item, wide = false }) {
             borderColor: `rgba(${item.accentRgb},0.25)`,
             transform: hovered ? 'translateY(0)' : 'translateY(4px)',
             opacity: hovered ? 1 : 0.8,
-            transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)',
-          }}
-        >
+            transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)'
+          }}>
+
           <span
             className="sr-dot"
             style={{
               background: item.accent,
-              boxShadow: hovered ? `0 0 6px ${item.accent}` : 'none',
-            }}
-          />
+              boxShadow: hovered ? `0 0 6px ${item.accent}` : 'none'
+            }} />
+
           {item.category}
         </span>
 
@@ -213,44 +213,44 @@ function CardContent({ hovered, item, wide = false }) {
           className="sr-card-title"
           style={{
             transform: hovered ? 'translateY(0)' : 'translateY(6px)',
-            transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1) 0.05s',
-          }}
-        >
+            transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1) 0.05s'
+          }}>
+
           {item.title}
         </h3>
 
-        {item.client && (
-          <p
-            className="sr-client"
-            style={{
-              transform: hovered ? 'translateY(0)' : 'translateY(6px)',
-              opacity: hovered ? 0.6 : 0.4,
-              transition: 'all 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s',
-            }}
-          >
+        {item.client &&
+        <p
+          className="sr-client"
+          style={{
+            transform: hovered ? 'translateY(0)' : 'translateY(6px)',
+            opacity: hovered ? 0.6 : 0.4,
+            transition: 'all 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s'
+          }}>
+
             {item.client}
           </p>
-        )}
+        }
       </div>
 
-      {wide && (
-        <div
-          className="sr-view-btn"
-          style={{
-            opacity: hovered ? 1 : 0,
-            transform: hovered ? 'translateY(0) translateX(0)' : 'translateY(8px) translateX(8px)',
-            transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s',
-            borderColor: `rgba(${item.accentRgb},0.3)`,
-          }}
-        >
+      {wide &&
+      <div
+        className="sr-view-btn"
+        style={{
+          opacity: hovered ? 1 : 0,
+          transform: hovered ? 'translateY(0) translateX(0)' : 'translateY(8px) translateX(8px)',
+          transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s',
+          borderColor: `rgba(${item.accentRgb},0.3)`
+        }}>
+
           <span>View Case</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
 export default function ShowreelSection() {
@@ -650,7 +650,7 @@ export default function ShowreelSection() {
         }
       `}</style>
 
-      <section className="sr-root">
+      <section className="sr-root bg-[rgba(4,4,10,0)]">
         <div className="sr-noise" />
         <div className="sr-inner">
 
@@ -704,6 +704,6 @@ export default function ShowreelSection() {
           </div>
         </div>
       </section>
-    </>
-  );
+    </>);
+
 }
