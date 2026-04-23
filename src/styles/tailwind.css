@@ -19,7 +19,9 @@
   --input: #141420;
   --ring: #C9A96E;
   --radius: 1rem;
-  --font-sans: var(--font-manrope), sans-serif;
+
+  /* Font variables */
+  --font-sans: var(--font-dm-sans), var(--font-dm-mono), sans-serif;
 }
 
 .dark {
@@ -71,6 +73,11 @@
    so position:sticky children are completely unaffected. */
 .layout-root {
   overflow-x: clip;
+}
+
+/* Font utility classes */
+.font-body {
+  font-family: var(--font-sans);
 }
 
 @layer utilities {
