@@ -13,8 +13,7 @@ const dmMono = DM_Mono({
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
-  axes: ['opsz'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: 'variable',
   style: ['normal', 'italic'],
   variable: '--font-dm-sans',
   display: 'swap',
