@@ -47,7 +47,7 @@ export default function CTASection() {
         {/* Layered overlays for depth */}
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background/40 to-background" />
         <div
-          className="absolute inset-0 animate-breathe"
+          className="absolute inset-0 animate-breathe bg-[rgba(0,0,0,0)]"
           style={{
             background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(201,169,110,0.07) 0%, transparent 70%)'
           }} />
@@ -113,12 +113,12 @@ export default function CTASection() {
           data-reveal="up"
           data-delay="600"
           className="flex flex-wrap items-center justify-center gap-8 mt-14">
-          {['12,400+ Assets Delivered', '5-Day Turnaround', 'No Shoot Required'].map((signal) => (
-            <div key={signal} className="flex items-center gap-2.5">
+          {['12,400+ Assets Delivered', '5-Day Turnaround', 'No Shoot Required'].map((signal) =>
+          <div key={signal} className="flex items-center gap-2.5">
               <div className="w-1 h-1 rounded-full bg-primary/60" />
               <span className="text-[10px] font-medium text-muted-foreground tracking-[0.15em] uppercase">{signal}</span>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -130,6 +130,6 @@ export default function CTASection() {
           Book a Call
         </button>
       </div>
-    </section>
-  );
+    </section>);
+
 }
