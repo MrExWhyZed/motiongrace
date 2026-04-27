@@ -17,6 +17,8 @@ export default function SmoothScroll() {
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Disable Lenis on mobile/tablet — native scroll is faster on touch screens
+    if (window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches) return;
 
     let mounted = true;
     let cleanup = () => {};
@@ -32,8 +34,13 @@ export default function SmoothScroll() {
 
       gsap.registerPlugin(ScrollTrigger);
 
+      // Higher lerp on low-end desktops → fewer interpolation frames needed
+      const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+      const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+      const isLowEnd = cores <= 4 || memory <= 4;
+
       const lenis = new Lenis({
-        lerp: 0.1,
+        lerp: isLowEnd ? 0.18 : 0.1,
         smoothWheel: true,
         syncTouch: false,
         wheelMultiplier: 1.0,

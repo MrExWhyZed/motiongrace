@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import type React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 /**
  * PremiumCursor — Luxury multi-layer animated cursor for MotionGrace
@@ -33,10 +32,21 @@ export default function PremiumCursor() {
   const iconRef   = useRef<HTMLDivElement>(null);
   const labelRef  = useRef<HTMLDivElement>(null);
   const trailRefs = useRef<HTMLDivElement[]>([]);
+  const [isTouch, setIsTouch] = useState(true); // default true avoids SSR mismatch
+
+  useEffect(() => {
+    setIsTouch(window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.matchMedia('(hover: none)').matches) return;
+    if (window.matchMedia('(hover: none), (max-width: 1024px)').matches) return;
+
+    // Detect low-end desktop: reduce trail count and skip aura lerp
+    const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+    const isLowEnd = cores <= 4 || memory <= 4;
+    const activeTrailCount = isLowEnd ? 3 : 6;
 
     let mounted = true;
     let doCleanup = () => {};
@@ -72,7 +82,7 @@ export default function PremiumCursor() {
       let spinTween: gsap.core.Tween | null = null;
 
       const RING_LERP  = 0.13;
-      const AURA_LERP  = 0.055;
+      const AURA_LERP  = isLowEnd ? 0 : 0.055; // skip aura lerp on low-end (instant snap instead)
       const TRAIL_LERP = [0.28, 0.22, 0.17, 0.13, 0.09, 0.065];
 
       // ── rAF loop ────────────────────────────────────────────────────────
@@ -88,12 +98,17 @@ export default function PremiumCursor() {
         icon.style.transform  = `translate(${ringPos.x - hw}px,${ringPos.y - hw}px)`;
         label.style.transform = `translate(${ringPos.x + hw + 10}px,${ringPos.y - 8}px)`;
 
-        auraPos.x += (mouse.x - auraPos.x) * AURA_LERP;
-        auraPos.y += (mouse.y - auraPos.y) * AURA_LERP;
-        aura.style.transform = `translate(${auraPos.x - 70}px,${auraPos.y - 70}px)`;
+        if (isLowEnd) {
+          // Instant snap for aura on low-end (skip lerp cost)
+          aura.style.transform = `translate(${mouse.x - 70}px,${mouse.y - 70}px)`;
+        } else {
+          auraPos.x += (mouse.x - auraPos.x) * AURA_LERP;
+          auraPos.y += (mouse.y - auraPos.y) * AURA_LERP;
+          aura.style.transform = `translate(${auraPos.x - 70}px,${auraPos.y - 70}px)`;
+        }
 
         let px = mouse.x, py = mouse.y;
-        for (let i = 0; i < trails.length; i++) {
+        for (let i = 0; i < activeTrailCount; i++) {
           trailPos[i].x += (px - trailPos[i].x) * TRAIL_LERP[i];
           trailPos[i].y += (py - trailPos[i].y) * TRAIL_LERP[i];
           trails[i].style.transform = `translate(${trailPos[i].x - 2}px,${trailPos[i].y - 2}px)`;
@@ -310,6 +325,8 @@ export default function PremiumCursor() {
     position: 'fixed', top: 0, left: 0,
     pointerEvents: 'none', willChange: 'transform',
   };
+
+  if (isTouch) return null;
 
   return (
     <>

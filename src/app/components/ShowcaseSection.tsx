@@ -5,52 +5,39 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const showcaseItems = [
   {
-    id: 1, category: 'Fragrance', title: 'Nocturne Parfum', client: 'Maison Élite',
-    year: '2024', stat: '340%', statLabel: 'engagement lift',
-    desc: 'A cinematic product identity dissolving light into darkness.',
-    image: 'https://img.rocket.new/generatedImages/rocket_gen_img_1063c0052-1768622315711.png',
-    alt: 'Luxury perfume bottle in deep darkness with gold light refraction',
+    id: 1,
+    image: 'https://res.cloudinary.com/ddgyx80f6/image/upload/v1777298360/Exploded_003_ynbnau.gif',
+    mediaType: 'gif' as const,
+    alt: 'Exploded product view',
     accent: '#C9A96E', accentRgb: '201,169,110', depth: 0,
   },
   {
-    id: 2, category: 'Skincare', title: 'Lumière Serum', client: 'Glacé Beauty',
-    year: '2024', stat: '12×', statLabel: 'faster delivery',
-    desc: 'Liquid light captured at 16K — skin-science made sacred.',
-    image: 'https://images.unsplash.com/photo-1619407884060-54145a659baf?w=800',
-    alt: 'Minimalist skincare serum bottle on reflective surface',
+    id: 2,
+    image: 'https://res.cloudinary.com/ddgyx80f6/video/upload/v1777298274/asset4_zw2lyr.mov',
+    mediaType: 'video' as const,
+    alt: 'Asset video',
     accent: '#4A9EFF', accentRgb: '74,158,255', depth: 1,
   },
   {
-    id: 3, category: 'Cosmetics', title: 'Velvet Lip Kit', client: 'Rouge Atelier',
-    year: '2023', stat: '280+', statLabel: 'assets generated',
-    desc: 'Every shade, every angle — no studio, no limits.',
-    image: 'https://img.rocket.new/generatedImages/rocket_gen_img_16c0b74ab-1769009930510.png',
-    alt: 'Luxury lipstick cosmetics product on dark marble',
+    id: 3,
+    image: 'https://res.cloudinary.com/ddgyx80f6/image/upload/v1777298110/002.1_rm3dok.gif',
+    mediaType: 'gif' as const,
+    alt: 'Product animation',
     accent: '#8B5CF6', accentRgb: '139,92,246', depth: 2,
   },
   {
-    id: 4, category: 'Haircare', title: 'Aura Oil', client: 'Silk & Stone',
-    year: '2024', stat: '6 weeks', statLabel: 'saved per campaign',
-    desc: 'Botanical essence rendered with molecular precision.',
-    image: 'https://images.unsplash.com/photo-1669212408620-957229726535?w=1200',
-    alt: 'Hair oil bottle with botanical ingredients',
-    accent: '#C9A96E', accentRgb: '201,169,110', depth: 0,
+    id: 4,
+    image: 'https://res.cloudinary.com/ddgyx80f6/video/upload/v1777297860/Lipstick_ymuas8.mp4',
+    mediaType: 'video' as const,
+    alt: 'Lipstick product video',
+    accent: '#E879A0', accentRgb: '232,121,160', depth: 1,
   },
   {
-    id: 5, category: 'Wellness', title: 'Aura Diffuser', client: 'Sora Collective',
-    year: '2024', stat: '99%', statLabel: 'client satisfaction',
-    desc: 'Stillness made visible. Breath as brand language.',
-    image: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=800',
-    alt: 'Minimalist white diffuser on marble surface',
-    accent: '#34D399', accentRgb: '52,211,153', depth: 1,
-  },
-  {
-    id: 6, category: 'Jewellery', title: 'Lumière Ring', client: 'Velour Atelier',
-    year: '2023', stat: '∞', statLabel: 'colourways on demand',
-    desc: 'Refracting desire — the stone reimagined each sunrise.',
-    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800',
-    alt: 'Elegant gold ring with diamond on dark background',
-    accent: '#FBBF24', accentRgb: '251,191,36', depth: 2,
+    id: 5,
+    image: 'https://res.cloudinary.com/ddgyx80f6/video/upload/v1777297901/gel_pour_r64tpy.mp4',
+    mediaType: 'video' as const,
+    alt: 'Gel pour video',
+    accent: '#34D399', accentRgb: '52,211,153', depth: 2,
   },
 ];
 
@@ -71,15 +58,36 @@ function useParticles(activeRef: React.MutableRefObject<boolean>, accentRgb: str
     const ctx2d = canvas.getContext('2d');
     if (!ctx2d) return;
 
+    // Detect low-end desktop: throttle to ~30fps and reduce particle count
+    const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+    const isLowEnd = cores <= 4 || memory <= 4;
+    const SPAWN_EVERY = isLowEnd ? 6 : 3; // spawn less often on low-end
+    const MAX_PARTICLES = isLowEnd ? 20 : 60;
+
+    // Pause rAF when tab is hidden
+    let visible = !document.hidden;
+    const onVisibility = () => { visible = !document.hidden; };
+    document.addEventListener('visibilitychange', onVisibility);
+
     let frame = 0;
-    const loop = () => {
+    let lastTime = 0;
+    const loop = (now: number) => {
+      rafRef.current = requestAnimationFrame(loop);
+
+      // Tab hidden → skip all work
+      if (!visible) return;
+
+      // Low-end: ~30fps cap
+      if (isLowEnd && now - lastTime < 32) return;
+      lastTime = now;
+
       ctx2d.clearRect(0, 0, canvas.width, canvas.height);
       if (!activeRef.current) {
         particlesRef.current = [];
-        rafRef.current = requestAnimationFrame(loop);
         return;
       }
-      if (frame % 3 === 0) {
+      if (frame % SPAWN_EVERY === 0 && particlesRef.current.length < MAX_PARTICLES) {
         const edge = Math.random();
         let x = 0, y = 0;
         if      (edge < 0.25) { x = Math.random() * canvas.width;  y = 0; }
@@ -105,22 +113,70 @@ function useParticles(activeRef: React.MutableRefObject<boolean>, accentRgb: str
         ctx2d.fillStyle = `rgba(${accentRgb},${alpha * 0.55})`;
         ctx2d.fill();
       });
-      rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(rafRef.current);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accentRgb]);
 
   return canvasRef;
 }
 
+// ─── MediaBackground ──────────────────────────────────────────────────────────
+// Renders image/gif/video as the card background — flicker-free
+const MediaBackground = React.memo(function MediaBackground({
+  item,
+  mediaRef,
+}: {
+  item: Item;
+  mediaRef: React.MutableRefObject<HTMLVideoElement | HTMLImageElement | null>;
+}) {
+  const sharedStyle: React.CSSProperties = {
+    position: 'absolute', inset: 0, width: '100%', height: '100%',
+    objectFit: 'cover',
+  };
+
+  if (item.mediaType === 'video') {
+    return (
+      <video
+        ref={mediaRef as React.MutableRefObject<HTMLVideoElement>}
+        src={item.image}
+        autoPlay
+        loop
+        muted
+        playsInline
+        disablePictureInPicture
+        preload="auto"
+        style={{
+          ...sharedStyle,
+          // GPU-composited layer prevents flicker on video elements
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+        }}
+      />
+    );
+  }
+
+  // image or gif
+  return (
+    <img
+      ref={mediaRef as React.MutableRefObject<HTMLImageElement>}
+      src={item.image}
+      alt={item.alt}
+      style={{
+        ...sharedStyle,
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+      }}
+    />
+  );
+});
+
 // ─── ShowcaseCard ─────────────────────────────────────────────────────────────
-// Zero React state on hot paths. All per-frame and hover work goes through:
-//   • A rAF loop writing direct style mutations (cursor, tilt, glow)
-//   • GSAP tweens (width, height, opacity, revealed content)
-//   • __hoverIn / __hoverOut methods attached to the wrapper DOM node
-//     so the parent can call them without any prop/state round-trip.
 const ShowcaseCard = React.memo(function ShowcaseCard({
   item,
   gsapRef,
@@ -130,40 +186,44 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
   item: Item;
   gsapRef: React.MutableRefObject<typeof import('gsap').gsap | null>;
   onEnter: (id: number, wrapperEl: HTMLElement) => void;
-  onLeave:  (wrapperEl: HTMLElement) => void;
+  onLeave: (wrapperEl: HTMLElement) => void;
 }) {
-  const wrapperRef   = useRef<HTMLDivElement>(null);
-  const cardRef      = useRef<HTMLDivElement>(null);
-  const imgRef       = useRef<HTMLImageElement>(null);
-  const glowRef      = useRef<HTMLDivElement>(null);
-  const dotRef       = useRef<HTMLDivElement>(null);
-  const ringRef      = useRef<HTMLDivElement>(null);
-  const contentRef   = useRef<HTMLDivElement>(null);
-  const separatorRef = useRef<HTMLDivElement>(null);
-  const descRef      = useRef<HTMLParagraphElement>(null);
-  const statNumRef   = useRef<HTMLSpanElement>(null);
-  const statLblRef   = useRef<HTMLSpanElement>(null);
-  const yearRef      = useRef<HTMLSpanElement>(null);
-  const sweepRef     = useRef<HTMLDivElement>(null);
-  const innerGlowRef = useRef<HTMLDivElement>(null);
-  const cornersRef   = useRef<(HTMLDivElement | null)[]>([]);
+  const wrapperRef    = useRef<HTMLDivElement>(null);
+  const cardRef       = useRef<HTMLDivElement>(null);
+  const mediaRef      = useRef<HTMLVideoElement | HTMLImageElement | null>(null);
+  const glowRef       = useRef<HTMLDivElement>(null);
+  const dotRef        = useRef<HTMLDivElement>(null);
+  const ringRef       = useRef<HTMLDivElement>(null);
+  const sweepRef      = useRef<HTMLDivElement>(null);
+  const innerGlowRef  = useRef<HTMLDivElement>(null);
+  const cornersRef    = useRef<(HTMLDivElement | null)[]>([]);
+  const particleCanvas = useParticles(useRef(false), item.accentRgb);
+  const activeRef     = useRef(false);
 
-  const isHoveredRef = useRef(false);
-  const activeRef    = useRef(false);
+  const isHoveredRef  = useRef(false);
+  const mouseLive     = useRef({ x: 0.5, y: 0.5 });
+  const mouseSmooth   = useRef({ x: 0.5, y: 0.5 });
+  const tiltSmooth    = useRef({ rx: 0, ry: 0 });
+  const magSmooth     = useRef({ x: 0, y: 0 });
+  const rafRef        = useRef<number>(0);
 
-  const mouseLive   = useRef({ x: 0.5, y: 0.5 });
-  const mouseSmooth = useRef({ x: 0.5, y: 0.5 });
-  const tiltSmooth  = useRef({ rx: 0, ry: 0 });
-  const magSmooth   = useRef({ x: 0, y: 0 });
-  const rafRef      = useRef<number>(0);
-
-  const particleCanvas = useParticles(activeRef, item.accentRgb);
   const depthY = [0, -24, -48][item.depth];
 
-  // ── rAF loop: cursor, tilt, parallax — writes directly to DOM ─────────────
+  // Sync activeRef with particle hook
+  const particleActiveRef = (particleCanvas as any)._activeRef ?? useRef(false);
+
+  // ── rAF tilt/parallax loop ─────────────────────────────────────────────────
   useEffect(() => {
     const LM = 0.12, LT = 0.08, LG = 0.07;
+    // Epsilon: if all smoothed values are close to target, skip DOM writes
+    const IDLE_EPS = 0.001;
+
     const tick = () => {
+      rafRef.current = requestAnimationFrame(tick);
+
+      // Skip all work when tab is hidden
+      if (document.hidden) return;
+
       const hov = isHoveredRef.current;
       const tx  = hov ? mouseLive.current.x : 0.5;
       const ty  = hov ? mouseLive.current.y : 0.5;
@@ -174,10 +234,23 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
       const mx = mouseSmooth.current.x;
       const my = mouseSmooth.current.y;
 
-      tiltSmooth.current.rx += ((hov ? (my - 0.5) * -14 : 0) - tiltSmooth.current.rx) * LT;
-      tiltSmooth.current.ry += ((hov ? (mx - 0.5) *  14 : 0) - tiltSmooth.current.ry) * LT;
-      magSmooth.current.x   += ((hov ? (mx - 0.5) *  18 : 0) - magSmooth.current.x)   * LG;
-      magSmooth.current.y   += ((hov ? (my - 0.5) *  10 : 0) - magSmooth.current.y)   * LG;
+      const targetRx = hov ? (my - 0.5) * -14 : 0;
+      const targetRy = hov ? (mx - 0.5) *  14 : 0;
+      const targetGx = hov ? (mx - 0.5) *  18 : 0;
+      const targetGy = hov ? (my - 0.5) *  10 : 0;
+
+      tiltSmooth.current.rx += (targetRx - tiltSmooth.current.rx) * LT;
+      tiltSmooth.current.ry += (targetRy - tiltSmooth.current.ry) * LT;
+      magSmooth.current.x   += (targetGx - magSmooth.current.x)   * LG;
+      magSmooth.current.y   += (targetGy - magSmooth.current.y)   * LG;
+
+      // Skip DOM writes if everything has settled to rest (not hovering + fully damped)
+      const isIdle = !hov
+        && Math.abs(tiltSmooth.current.rx) < IDLE_EPS
+        && Math.abs(tiltSmooth.current.ry) < IDLE_EPS
+        && Math.abs(magSmooth.current.x)   < IDLE_EPS
+        && Math.abs(magSmooth.current.y)   < IDLE_EPS;
+      if (isIdle) return;
 
       if (wrapperRef.current) {
         wrapperRef.current.style.transform =
@@ -187,24 +260,32 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
         cardRef.current.style.transform =
           `perspective(900px) rotateX(${tiltSmooth.current.rx}deg) rotateY(${tiltSmooth.current.ry}deg) translate(${magSmooth.current.x * 0.6}px,${magSmooth.current.y * 0.6}px)`;
       }
-      if (imgRef.current && hov) {
-        imgRef.current.style.transform = `scale(1.12) translate(${(mx-0.5)*-8}px,${(my-0.5)*-8}px)`;
+
+      // Only apply image parallax on non-video media — never touch video transform
+      if (mediaRef.current && hov && item.mediaType !== 'video') {
+        (mediaRef.current as HTMLImageElement).style.transform =
+          `translateZ(0) scale(1.12) translate(${(mx - 0.5) * -8}px,${(my - 0.5) * -8}px)`;
       }
+
       if (glowRef.current) {
         glowRef.current.style.background =
-          `radial-gradient(circle at ${mx*100}% ${my*100}%, rgba(${item.accentRgb},0.18) 0%, transparent 55%)`;
+          `radial-gradient(circle at ${mx * 100}% ${my * 100}%, rgba(${item.accentRgb},0.18) 0%, transparent 55%)`;
       }
-      if (dotRef.current)  { dotRef.current.style.left  = `calc(${mx*100}% - 5px)`;  dotRef.current.style.top  = `calc(${my*100}% - 5px)`; }
-      if (ringRef.current) { ringRef.current.style.left = `calc(${mx*100}% - 22px)`; ringRef.current.style.top = `calc(${my*100}% - 22px)`; }
-
-      rafRef.current = requestAnimationFrame(tick);
+      if (dotRef.current) {
+        dotRef.current.style.left = `calc(${mx * 100}% - 5px)`;
+        dotRef.current.style.top  = `calc(${my * 100}% - 5px)`;
+      }
+      if (ringRef.current) {
+        ringRef.current.style.left = `calc(${mx * 100}% - 22px)`;
+        ringRef.current.style.top  = `calc(${my * 100}% - 22px)`;
+      }
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── GSAP hover-in ─────────────────────────────────────────────────────────
+  // ── GSAP hover-in ──────────────────────────────────────────────────────────
   const playHoverIn = useCallback(() => {
     const g = gsapRef.current;
     if (!g || !wrapperRef.current || !cardRef.current) return;
@@ -220,26 +301,24 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
     });
 
     if (particleCanvas.current) g.to(particleCanvas.current, { opacity: 1, duration: 0.4, ease: 'power2.out' });
-    if (imgRef.current) g.to(imgRef.current, { filter: 'saturate(1.1) brightness(0.9)', duration: 0.5, ease: 'power2.out' });
-    if (glowRef.current) g.to(glowRef.current, { opacity: 1, duration: 0.4, ease: 'power2.out' });
-    if (sweepRef.current) g.fromTo(sweepRef.current, { yPercent: -100 }, { yPercent: 100, duration: 0.8, ease: 'power2.inOut' });
+
+    // Only animate filter on non-video elements to prevent flicker
+    if (mediaRef.current && item.mediaType !== 'video') {
+      g.to(mediaRef.current, { filter: 'saturate(1.1) brightness(0.9)', duration: 0.5, ease: 'power2.out' });
+    }
+
+    if (glowRef.current)      g.to(glowRef.current,      { opacity: 1, duration: 0.4, ease: 'power2.out' });
+    if (sweepRef.current)     g.fromTo(sweepRef.current, { yPercent: -100 }, { yPercent: 100, duration: 0.8, ease: 'power2.inOut' });
     if (innerGlowRef.current) g.to(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.2)`, duration: 0.5, ease: 'power2.out' });
-    if (dotRef.current)  g.to(dotRef.current,  { opacity: 0.9, duration: 0.3, ease: 'power2.out' });
-    if (ringRef.current) g.to(ringRef.current, { opacity: 1,   duration: 0.3, ease: 'power2.out' });
-    if (yearRef.current) g.to(yearRef.current, { opacity: 1, x: 0, duration: 0.5, ease: 'power2.out', delay: 0.1 });
+    if (dotRef.current)       g.to(dotRef.current,  { opacity: 0.9, duration: 0.3, ease: 'power2.out' });
+    if (ringRef.current)      g.to(ringRef.current, { opacity: 1,   duration: 0.3, ease: 'power2.out' });
 
     cornersRef.current.forEach((el, i) => {
       if (el) g.to(el, { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out', delay: i * 0.06 });
     });
+  }, [gsapRef, item.accentRgb, item.mediaType, particleCanvas]);
 
-    if (contentRef.current)   g.to(contentRef.current,   { maxHeight: 200, opacity: 1, duration: 0.7, ease: 'power3.out', delay: 0.11 });
-    if (separatorRef.current) g.to(separatorRef.current, { scaleX: 1, duration: 0.6, ease: 'power3.out', delay: 0.15 });
-    if (descRef.current)      g.to(descRef.current,      { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out', delay: 0.20 });
-    if (statNumRef.current)   g.to(statNumRef.current,   { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out', delay: 0.28 });
-    if (statLblRef.current)   g.to(statLblRef.current,   { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out', delay: 0.35 });
-  }, [gsapRef, item.accentRgb, particleCanvas]);
-
-  // ── GSAP hover-out ────────────────────────────────────────────────────────
+  // ── GSAP hover-out ─────────────────────────────────────────────────────────
   const playHoverOut = useCallback(() => {
     const g = gsapRef.current;
     if (!g || !wrapperRef.current || !cardRef.current) return;
@@ -255,53 +334,48 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
     });
 
     if (particleCanvas.current) g.to(particleCanvas.current, { opacity: 0, duration: 0.35, ease: 'power2.in' });
-    if (imgRef.current) g.to(imgRef.current, { scale: 1, x: 0, y: 0, filter: 'saturate(0.8) brightness(0.8)', duration: 1.8, ease: 'power3.out' });
+
+    if (mediaRef.current && item.mediaType !== 'video') {
+      g.to(mediaRef.current, { scale: 1, x: 0, y: 0, filter: 'saturate(0.85) brightness(0.85)', duration: 1.8, ease: 'power3.out' });
+    }
+
     if (glowRef.current)      g.to(glowRef.current,      { opacity: 0, duration: 0.4, ease: 'power2.in' });
     if (dotRef.current)       g.to(dotRef.current,       { opacity: 0, duration: 0.25, ease: 'power2.in' });
     if (ringRef.current)      g.to(ringRef.current,      { opacity: 0, duration: 0.25, ease: 'power2.in' });
-    if (yearRef.current)      g.to(yearRef.current,      { opacity: 0, x: 8, duration: 0.4, ease: 'power2.in' });
     if (innerGlowRef.current) g.to(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.04)`, duration: 0.4, ease: 'power2.in' });
 
     cornersRef.current.forEach(el => {
       if (el) g.to(el, { opacity: 0, scale: 0.6, duration: 0.35, ease: 'power2.in' });
     });
+  }, [gsapRef, item.accentRgb, item.mediaType, particleCanvas]);
 
-    if (contentRef.current)   g.to(contentRef.current,   { maxHeight: 0, opacity: 0, duration: 0.45, ease: 'power2.in' });
-    if (separatorRef.current) g.to(separatorRef.current, { scaleX: 0, duration: 0.35, ease: 'power2.in' });
-    if (descRef.current)      g.to(descRef.current,      { y: 10, opacity: 0, duration: 0.3, ease: 'power2.in' });
-    if (statNumRef.current)   g.to(statNumRef.current,   { y: 14, opacity: 0, duration: 0.3, ease: 'power2.in' });
-    if (statLblRef.current)   g.to(statLblRef.current,   { y: 10, opacity: 0, duration: 0.3, ease: 'power2.in' });
-  }, [gsapRef, item.accentRgb, particleCanvas]);
-
-  // Expose methods via DOM so parent avoids state round-trips
+  // Expose methods via DOM
   useEffect(() => {
     if (!wrapperRef.current) return;
     (wrapperRef.current as any).__hoverIn  = playHoverIn;
     (wrapperRef.current as any).__hoverOut = playHoverOut;
   }, [playHoverIn, playHoverOut]);
 
-  // Set initial GSAP states (once, after mount)
+  // Set initial GSAP states
   useEffect(() => {
-    const g = gsapRef.current;
-    if (!g) return;
-    const run = () => {
-      if (!gsapRef.current) { requestAnimationFrame(run); return; }
-      const gg = gsapRef.current;
-      if (contentRef.current)   gg.set(contentRef.current,   { maxHeight: 0, opacity: 0 });
-      if (separatorRef.current) gg.set(separatorRef.current, { scaleX: 0, transformOrigin: 'left' });
-      if (descRef.current)      gg.set(descRef.current,      { y: 10, opacity: 0 });
-      if (statNumRef.current)   gg.set(statNumRef.current,   { y: 14, opacity: 0 });
-      if (statLblRef.current)   gg.set(statLblRef.current,   { y: 10, opacity: 0 });
-      if (yearRef.current)      gg.set(yearRef.current,      { opacity: 0, x: 8 });
-      if (glowRef.current)      gg.set(glowRef.current,      { opacity: 0 });
-      if (dotRef.current)       gg.set(dotRef.current,       { opacity: 0 });
-      if (ringRef.current)      gg.set(ringRef.current,      { opacity: 0 });
-      cornersRef.current.forEach(el => el && gg.set(el, { opacity: 0, scale: 0.6 }));
-      if (particleCanvas.current) gg.set(particleCanvas.current, { opacity: 0 });
-      if (imgRef.current) gg.set(imgRef.current, { filter: 'saturate(0.8) brightness(0.8)' });
-      if (innerGlowRef.current) gg.set(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.04)` });
+    const tryInit = () => {
+      const g = gsapRef.current;
+      if (!g) { requestAnimationFrame(tryInit); return; }
+
+      if (glowRef.current)      g.set(glowRef.current,      { opacity: 0 });
+      if (dotRef.current)       g.set(dotRef.current,       { opacity: 0 });
+      if (ringRef.current)      g.set(ringRef.current,      { opacity: 0 });
+      if (innerGlowRef.current) g.set(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.04)` });
+      if (particleCanvas.current) g.set(particleCanvas.current, { opacity: 0 });
+
+      // Only set filter on non-video elements
+      if (mediaRef.current && item.mediaType !== 'video') {
+        g.set(mediaRef.current, { filter: 'saturate(0.85) brightness(0.85)' });
+      }
+
+      cornersRef.current.forEach(el => el && g.set(el, { opacity: 0, scale: 0.6 }));
     };
-    run();
+    tryInit();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -315,6 +389,7 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
   return (
     <div
       ref={wrapperRef}
+      data-showcase-wrapper="true"
       data-cursor="image"
       style={{
         flexShrink: 0,
@@ -335,24 +410,33 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
           border: `1px solid rgba(${item.accentRgb},0.07)`,
           boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
           willChange: 'transform, height',
+          // Isolate stacking context to prevent paint bleed / flicker
+          isolation: 'isolate',
         }}
       >
         {/* Particles */}
-        <canvas ref={particleCanvas} width={620} height={560}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }} />
+        <canvas
+          ref={particleCanvas}
+          width={620}
+          height={560}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}
+        />
 
-        {/* Image */}
-        <img ref={imgRef} src={item.image} alt={item.alt}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', willChange: 'transform, filter' }} />
+        {/* Media background */}
+        <MediaBackground item={item} mediaRef={mediaRef} />
 
-        {/* Dark gradient */}
-        <div style={{ position: 'absolute', inset: 0,
-          background: 'linear-gradient(to top, rgba(4,4,10,0.98) 0%, rgba(4,4,10,0.25) 52%, transparent 100%)' }} />
+        {/* Subtle vignette — no text gradient needed */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.55) 100%)',
+          pointerEvents: 'none',
+          zIndex: 2,
+        }} />
 
         {/* Cursor glow */}
         <div ref={glowRef} style={{ position: 'absolute', inset: 0, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 3 }} />
 
-        {/* Sweep */}
+        {/* Sweep shimmer */}
         <div ref={sweepRef} style={{
           position: 'absolute', inset: 0, zIndex: 4, pointerEvents: 'none',
           background: `linear-gradient(to bottom, transparent 0%, rgba(${item.accentRgb},0.06) 50%, transparent 100%)`,
@@ -362,65 +446,10 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
         {/* Inner glow border */}
         <div ref={innerGlowRef} style={{ position: 'absolute', inset: 0, borderRadius: '18px', pointerEvents: 'none', zIndex: 6 }} />
 
-        {/* Content */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1.75rem', zIndex: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              fontSize: '8px', fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase',
-              padding: '0.32rem 0.7rem', borderRadius: '100px',
-              background: `rgba(${item.accentRgb},0.1)`,
-              border: `1px solid rgba(${item.accentRgb},0.2)`,
-              color: item.accent,
-            }}>
-              <span style={{
-                width: '5px', height: '5px', borderRadius: '50%', background: item.accent, flexShrink: 0,
-                animation: 'dot-pulse 1.8s ease-in-out infinite',
-              }} />
-              {item.category}
-            </div>
-            <span ref={yearRef} style={{ fontSize: '9px', letterSpacing: '0.15em', color: `rgba(${item.accentRgb},0.4)` }}>
-              {item.year}
-            </span>
-          </div>
-
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#f5f0e8', margin: '0 0 0.35rem', lineHeight: 1.1 }}>
-            {item.title}
-          </h3>
-          <p style={{ fontSize: '0.68rem', color: 'rgba(245,240,232,0.38)', fontWeight: 300, letterSpacing: '0.1em', margin: 0, textTransform: 'uppercase' }}>
-            {item.client}
-          </p>
-
-          {/* Revealed content block */}
-          <div ref={contentRef} style={{ overflow: 'hidden' }}>
-            <div ref={separatorRef} style={{
-              height: '1px', margin: '1.1rem 0 1rem',
-              background: `linear-gradient(90deg, rgba(${item.accentRgb},0.35), rgba(${item.accentRgb},0.08), transparent)`,
-              transformOrigin: 'left',
-            }} />
-            <p ref={descRef} style={{
-              fontSize: '0.78rem', lineHeight: 1.65, color: 'rgba(245,240,232,0.55)',
-              fontWeight: 300, letterSpacing: '0.02em', margin: '0 0 1.1rem',
-            }}>{item.desc}</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-              <span ref={statNumRef} style={{
-                fontSize: '1.9rem', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1,
-                background: `linear-gradient(135deg, ${item.accent}, rgba(${item.accentRgb},0.6))`,
-                WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
-                display: 'inline-block',
-              }}>{item.stat}</span>
-              <span ref={statLblRef} style={{
-                fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase',
-                color: `rgba(${item.accentRgb},0.45)`,
-              }}>{item.statLabel}</span>
-            </div>
-          </div>
-        </div>
-
         {/* Corner brackets */}
         {[
-          { top: 14, left: 14,   bt: true,  bl: true  },
-          { top: 14, right: 14,  bt: true,  br: true  },
+          { top: 14, left: 14,    bt: true,  bl: true  },
+          { top: 14, right: 14,   bt: true,  br: true  },
           { bottom: 14, left: 14,  bb: true,  bl: true  },
           { bottom: 14, right: 14, bb: true,  br: true  },
         ].map((c, ci) => (
@@ -436,7 +465,7 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
           }} />
         ))}
 
-        {/* Dot + ring cursors — position written by rAF */}
+        {/* Dot + ring cursors */}
         <div ref={dotRef} style={{
           position: 'absolute', zIndex: 20, pointerEvents: 'none',
           width: '10px', height: '10px', borderRadius: '50%',
@@ -462,7 +491,6 @@ export default function ShowcaseSection() {
 
   const gsapRef = useRef<typeof import('gsap').gsap | null>(null);
 
-  // All hover state stays in refs — zero re-renders on hover change
   const hoveredWrapperRef = useRef<HTMLElement | null>(null);
   const pendingIdRef      = useRef<number | null>(null);
   const switchTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -480,9 +508,6 @@ export default function ShowcaseSection() {
   const [leftActive,  setLeftActive]  = useState(false);
   const [rightActive, setRightActive] = useState(false);
 
-  // ── Neighbor dimming: GSAP tween on wrapper elements ─────────────────────
-  // filter goes on the WRAPPER (compositor layer) so it's GPU-only,
-  // no layout cascade onto the card children.
   const applyNeighborState = useCallback((
     hoveredWrapper: HTMLElement | null,
     g: typeof import('gsap').gsap,
@@ -503,7 +528,6 @@ export default function ShowcaseSection() {
     });
   }, []);
 
-  // ── Hover handlers — no setState except arrow buttons ─────────────────────
   const handleEnter = useCallback((id: number, wrapperEl: HTMLElement) => {
     pendingIdRef.current = id;
     if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
@@ -512,7 +536,6 @@ export default function ShowcaseSection() {
       const g = gsapRef.current;
       if (!g) return;
 
-      // Out on previous card if switching mid-hover
       if (hoveredWrapperRef.current && hoveredWrapperRef.current !== wrapperEl) {
         const prevOut = (hoveredWrapperRef.current as any).__hoverOut;
         if (prevOut) prevOut();
@@ -548,7 +571,6 @@ export default function ShowcaseSection() {
     }, 40);
   }, [applyNeighborState]);
 
-  // ── GSAP + ScrollTrigger entrance ─────────────────────────────────────────
   useEffect(() => {
     if (!sectionRef.current) return;
     let mounted = true;
@@ -586,16 +608,28 @@ export default function ShowcaseSection() {
     return () => { mounted = false; };
   }, []);
 
-  // ── Auto-scroll ───────────────────────────────────────────────────────────
   useEffect(() => {
     const BASE = 0.42, AMAX = 6, AACC = 0.18, ADEC = 0.88;
     let last = 0;
+    let inView = true;
+
+    // Pause when section is off-screen (IntersectionObserver)
+    const observer = new IntersectionObserver(
+      ([entry]) => { inView = entry.isIntersecting; },
+      { threshold: 0 }
+    );
+    if (trackRef.current) observer.observe(trackRef.current);
+
     const loop = (t: number) => {
+      animFrameRef.current = requestAnimationFrame(loop);
+      // Skip when tab hidden or section scrolled out of view
+      if (document.hidden || !inView) return;
+
       const dt = Math.min(t - last, 50); last = t;
-      if (!trackRef.current) { animFrameRef.current = requestAnimationFrame(loop); return; }
+      if (!trackRef.current) return;
       const tw = trackRef.current.scrollWidth / 2;
 
-      if      (holdRRef.current) arrowSpeedRef.current = Math.min(arrowSpeedRef.current + AACC, AMAX);
+      if      (holdRRef.current) arrowSpeedRef.current = Math.min(arrowSpeedRef.current + AACC,  AMAX);
       else if (holdLRef.current) arrowSpeedRef.current = Math.max(arrowSpeedRef.current - AACC, -AMAX);
       else {
         arrowSpeedRef.current *= ADEC;
@@ -606,14 +640,16 @@ export default function ShowcaseSection() {
         ? Math.max(velocityRef.current - 0.05, 0)
         : Math.min(velocityRef.current + 0.02, 1);
 
-      targetXRef.current = (targetXRef.current + BASE*(dt/16)*velocityRef.current + arrowSpeedRef.current*(dt/16) + tw) % tw;
+      targetXRef.current = (targetXRef.current + BASE * (dt / 16) * velocityRef.current + arrowSpeedRef.current * (dt / 16) + tw) % tw;
       currentXRef.current += (targetXRef.current - currentXRef.current) * 0.07;
       if (currentXRef.current < 0) currentXRef.current += tw;
       trackRef.current.style.transform = `translateX(-${currentXRef.current}px)`;
-      animFrameRef.current = requestAnimationFrame(loop);
     };
     animFrameRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animFrameRef.current);
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+      observer.disconnect();
+    };
   }, []);
 
   const startLeft  = useCallback(() => { holdLRef.current = true;  holdRRef.current = false; setLeftActive(true);  setRightActive(false); }, []);
@@ -663,6 +699,7 @@ export default function ShowcaseSection() {
       className="relative overflow-hidden py-28 sm:py-40"
       style={{ background: 'linear-gradient(180deg, #020208 0%, #04040c 50%, #030309 100%)' }}
     >
+      {/* Background streaks */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[
           { top: '18%', left: '-8%',  w: '55%', rot: '-7deg', color: '201,169,110', delay: '0s' },
@@ -679,11 +716,13 @@ export default function ShowcaseSection() {
         ))}
       </div>
 
+      {/* Grid overlay */}
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: `linear-gradient(rgba(201,169,110,0.012) 1px, transparent 1px),linear-gradient(90deg,rgba(201,169,110,0.012) 1px,transparent 1px)`,
         backgroundSize: '100px 100px',
       }} />
 
+      {/* Header */}
       <div ref={headerRef} className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 mb-16">
         <div className="flex items-end justify-between">
           <div>
@@ -706,10 +745,12 @@ export default function ShowcaseSection() {
         </div>
       </div>
 
+      {/* Catalog label */}
       <div style={{ textAlign: 'center', marginBottom: '1.5rem', opacity: sectionVisible ? 0.4 : 0, transition: 'opacity 0.6s ease' }}>
         <span style={{ fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(237,233,227,0.4)' }}>Catalog</span>
       </div>
 
+      {/* Carousel */}
       <div style={{ position: 'relative' }}>
         <ArrowBtn dir="left" />
         <ArrowBtn dir="right" />
@@ -721,20 +762,19 @@ export default function ShowcaseSection() {
         }}>
           <div ref={trackRef} style={{ display: 'flex', gap: '14px', paddingLeft: '24px', willChange: 'transform', alignItems: 'flex-end' }}>
             {allItems.map((item, i) => (
-              // data-showcase-wrapper lets applyNeighborState find all wrapper divs
-              <div key={`${item.id}-${i}`} data-showcase-wrapper="true" style={{ display: 'contents' }}>
-                <ShowcaseCard
-                  item={item}
-                  gsapRef={gsapRef}
-                  onEnter={handleEnter}
-                  onLeave={handleLeave}
-                />
-              </div>
+              <ShowcaseCard
+                key={`${item.id}-${i}`}
+                item={item}
+                gsapRef={gsapRef}
+                onEnter={handleEnter}
+                onLeave={handleLeave}
+              />
             ))}
           </div>
         </div>
       </div>
 
+      {/* CTA */}
       <div ref={btnRef} style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', position: 'relative', zIndex: 10 }}>
         <a href="https://app.motiongraceco.com/gallery" target="_blank" rel="noopener noreferrer" style={{
           display: 'inline-flex', alignItems: 'center', gap: '12px',

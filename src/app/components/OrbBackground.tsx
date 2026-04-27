@@ -15,6 +15,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Renderer, Program, Mesh, Triangle, Vec3 } from 'ogl';
+import { isLowEndDesktop } from '@/lib/deviceUtils';
 
 interface OrbBackgroundProps {
   hue?: number;
@@ -194,7 +195,24 @@ export default function OrbBackground({
     const container = ctnDom.current;
     if (!container) return;
 
-    const renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
+    // On mobile/tablet devices skip the WebGL shader entirely — use CSS gradient fallback
+    if (window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches) {
+      container.style.background =
+        'radial-gradient(ellipse 80% 80% at 50% 50%, rgba(139,92,246,0.18) 0%, rgba(8,148,255,0.10) 40%, transparent 70%)';
+      return;
+    }
+
+    const lowEnd = isLowEndDesktop();
+
+    // On low-end desktops also skip WebGL — too costly; use animated CSS gradient instead
+    if (lowEnd) {
+      container.style.background =
+        'radial-gradient(ellipse 80% 80% at 50% 50%, rgba(139,92,246,0.22) 0%, rgba(8,148,255,0.12) 40%, transparent 70%)';
+      container.style.animation = 'breathe 6s ease-in-out infinite';
+      return;
+    }
+
+    const renderer = new Renderer({ alpha: true, premultipliedAlpha: false, antialias: false });
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 0);
     container.appendChild(gl.canvas);
@@ -223,7 +241,9 @@ export default function OrbBackground({
 
     function resize() {
       if (!container) return;
-      const dpr = window.devicePixelRatio || 1;
+      // Low-end: cap at 1.0 DPR (native pixels only). High-end: cap at 1.5.
+      const maxDpr = lowEnd ? 1.0 : 1.5;
+      const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
       const width = container.clientWidth;
       const height = container.clientHeight;
       renderer.setSize(width * dpr, height * dpr);
@@ -273,8 +293,13 @@ export default function OrbBackground({
     window.addEventListener('mouseleave', handleMouseLeave);
 
     let rafId: number;
+    // Low-end: target ~30 fps by skipping every other frame
+    let frameCount = 0;
     const update = (t: number) => {
       rafId = requestAnimationFrame(update);
+      frameCount++;
+      if (lowEnd && frameCount % 2 !== 0) return; // skip odd frames on low-end
+
       const dt = (t - lastTime) * 0.001;
       lastTime = t;
       program.uniforms.iTime.value = t * 0.001;
@@ -307,6 +332,7 @@ export default function OrbBackground({
   return (
     <div
       ref={ctnDom}
+      className="orb-container"
       style={{
         position: 'absolute',
         inset: 0,

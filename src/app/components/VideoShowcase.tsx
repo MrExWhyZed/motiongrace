@@ -30,6 +30,12 @@ export default function VideoShowcase() {
       if (!mounted || !sectionRef.current) return;
       gsap.registerPlugin(ScrollTrigger);
 
+      // Skip blur filters on low-end desktops
+      const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+      const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+      const isLowEnd = cores <= 4 || memory <= 4
+        || window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
+
       const section   = sectionRef.current;
       const scrim     = scrimRef.current;
       const cta       = ctaRef.current;
@@ -40,9 +46,9 @@ export default function VideoShowcase() {
 
       const ctx = gsap.context(() => {
 
-        /* ── Ring rotations ── */
-        if (outerRing) gsap.to(outerRing, { rotation: 360,  duration: 38, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
-        if (innerRing) gsap.to(innerRing, { rotation: -360, duration: 30, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
+        /* ── Ring rotations — slower on low-end to reduce GPU overdraw ── */
+        if (outerRing) gsap.to(outerRing, { rotation: 360,  duration: isLowEnd ? 80 : 38, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
+        if (innerRing) gsap.to(innerRing, { rotation: -360, duration: isLowEnd ? 60 : 30, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
 
         /* ── Scroll: darken scrim → reveal CTA ── */
         const tl = gsap.timeline({
@@ -65,10 +71,10 @@ export default function VideoShowcase() {
           0
         );
 
-        /* CTA fades up */
+        /* CTA fades up — skip blur filter on low-end */
         tl.fromTo(cta,
-          { opacity: 0, y: 32, filter: 'blur(16px)' },
-          { opacity: 1, y: 0,  filter: 'blur(0px)', ease: 'power3.out', duration: 0.5 },
+          { opacity: 0, y: 32, ...(isLowEnd ? {} : { filter: 'blur(16px)' }) },
+          { opacity: 1, y: 0,  ...(isLowEnd ? {} : { filter: 'blur(0px)' }), ease: 'power3.out', duration: 0.5 },
           0.5
         );
 

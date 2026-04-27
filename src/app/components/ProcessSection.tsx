@@ -81,6 +81,10 @@ export default function ProcessSection() {
   useEffect(() => {
     const LERP = 0.15;
     const tick = () => {
+      rafRef.current = requestAnimationFrame(tick);
+      // Skip seeks when tab is hidden — saves decoder + GPU work
+      if (document.hidden) return;
+
       const vid = videoRef.current;
       if (vid && videoReadyRef.current && vid.duration && isFinite(vid.duration)) {
         const now = performance.now();
@@ -93,7 +97,6 @@ export default function ProcessSection() {
           lastScrubRef.current = now;
         }
       }
-      rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);

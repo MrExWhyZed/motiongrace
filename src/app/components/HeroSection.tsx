@@ -25,6 +25,8 @@ const particles = Array.from({ length: 18 }, (_, i) => ({
       ? '0 0 5px rgba(74,158,255,0.5)'
       : 'none',
 }));
+// Reduced set for mobile (every 3rd particle only)
+const particlesMobile = particles.filter((_, i) => i % 3 === 0);
 
 /* ─── Cycling subheadlines (typing effect) ───────────────────────────────── */
 const sublines = [
@@ -69,6 +71,18 @@ export default function HeroSection() {
   // Always false on first render so SSR and client HTML match.
   // A useEffect immediately corrects it for returning visitors (SPA nav).
   const [heroVisible, setHeroVisible] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isLowEnd, setIsLowEnd] = useState(false);
+
+  useEffect(() => {
+    const mobile = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
+    setIsMobile(mobile);
+    if (!mobile) {
+      const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+      const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+      setIsLowEnd(cores <= 4 || memory <= 4);
+    }
+  }, []);
 
   /* ── Register preloader-done listener + signal hero is mounted ─── */
   useEffect(() => {
@@ -521,7 +535,41 @@ export default function HeroSection() {
       const titleBlock = storyTitleBlockRef.current;
       const titleHint = storyTitleHintRef.current;
 
+      const isReducedDevice = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
+
       ctx = gsap.context(() => {
+        if (isReducedDevice) {
+          // Simpler open animation on mobile/tablet — no blur filter (too expensive)
+          gsap.set(overlay, { opacity: 0 });
+          gsap.set(scrollInner, { opacity: 0 });
+          if (closeBtn) gsap.set(closeBtn, { opacity: 0 });
+          if (titleBlock) gsap.set(titleBlock, { opacity: 0, y: 20 });
+          if (titleHint) gsap.set(titleHint, { opacity: 0 });
+
+          const tl = gsap.timeline({
+            defaults: { ease: 'power2.out' },
+            onStart: () => { setStoryVisible(true); setStoryFlickerOpacity(1); setTitlePhase('in'); },
+            onComplete: () => { setTitlePhase('shown'); },
+          });
+          tl.to(overlay, { opacity: 1, duration: 0.3 })
+            .to(scrollInner, { opacity: 1, duration: 0.3 }, 0.05)
+            .to(closeBtn, { opacity: 1, duration: 0.3 }, 0.1)
+            .to(titleBlock, { opacity: 1, y: 0, duration: 0.5 }, 0.15)
+            .to(titleHint, { opacity: 1, duration: 0.35 }, 0.55);
+
+          storyAnimationRef.current = {
+            close: () => {
+              setStoryExiting(true);
+              setTitlePhase('hidden');
+              gsap.timeline({
+                defaults: { ease: 'power2.inOut' },
+                onComplete: () => { setStoryOpen(false); setStoryExiting(false); setStoryVisible(false); resetStoryMotionState(); },
+              })
+                .to([titleHint, closeBtn, titleBlock, scrollInner], { opacity: 0, duration: 0.25 }, 0)
+                .to(overlay, { opacity: 0, duration: 0.3 }, 0.05);
+            },
+          };
+        } else {
         gsap.set(overlay, { opacity: 0, filter: 'blur(18px)' });
         gsap.set(scrollInner, { opacity: 0.01, y: 28 });
         if (closeBtn) gsap.set(closeBtn, { opacity: 0, y: -14 });
@@ -589,6 +637,7 @@ export default function HeroSection() {
               .to(overlay,     { opacity: 0, filter: 'blur(14px)', duration: 0.38, ease: 'power2.in' }, 0.05);
           },
         };
+        } // end else (desktop)
       }, storyOverlayRef);
     })();
 
@@ -616,6 +665,8 @@ export default function HeroSection() {
     if (!storyOpen) return;
     const canvas = storyCanvasRef.current;
     if (!canvas) return;
+    // Skip heavy canvas animation on touch devices
+    if (window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     let w = 0, h = 0;
@@ -777,17 +828,39 @@ export default function HeroSection() {
   }, [storyOpen]);
 
   /* Story overlay gets its own Lenis instance so the internal narrative
-     scroll matches the rest of the site without interfering with page scroll. */
+     scroll matches the rest of the site without interfering with page scroll.
+     On mobile/tablet we skip Lenis and let native scroll handle it. */
   useEffect(() => {
     if (!storyOpen || !storyScrollRef.current || !storyScrollContentRef.current) return;
-
-    let mounted = true;
-    let rafId = 0;
-    let cleanup = () => {};
 
     const wrapper = storyScrollRef.current;
     const content = storyScrollContentRef.current;
     wrapper.scrollTop = 0;
+
+    const isReducedDevice = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
+
+    // Touch swipe-down to close (works on both mobile and tablet)
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => { touchStartY = e.touches[0].clientY; };
+    const onTouchEnd = (e: TouchEvent) => {
+      const atTop = wrapper.scrollTop <= 0;
+      const swipeDown = e.changedTouches[0].clientY - touchStartY > 60;
+      if (atTop && swipeDown) closeStory();
+    };
+    wrapper.addEventListener('touchstart', onTouchStart, { passive: true });
+    wrapper.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    if (isReducedDevice) {
+      // Native scroll on mobile — no Lenis overhead
+      return () => {
+        wrapper.removeEventListener('touchstart', onTouchStart);
+        wrapper.removeEventListener('touchend', onTouchEnd);
+      };
+    }
+
+    let mounted = true;
+    let rafId = 0;
+    let cleanup = () => {};
 
     void (async () => {
       const { default: Lenis } = await import('lenis');
@@ -799,8 +872,7 @@ export default function HeroSection() {
         autoRaf: false,
         lerp: 0.1,
         smoothWheel: true,
-        syncTouch: true,
-        touchMultiplier: 2.0,
+        syncTouch: false,
         wheelMultiplier: 1.0,
       });
 
@@ -820,6 +892,8 @@ export default function HeroSection() {
     return () => {
       mounted = false;
       cleanup();
+      wrapper.removeEventListener('touchstart', onTouchStart);
+      wrapper.removeEventListener('touchend', onTouchEnd);
     };
   }, [storyOpen]);
 
@@ -890,12 +964,12 @@ export default function HeroSection() {
         </div>
 
         {/* ── Particles ─────────────────────────────────────────── */}
-        <div ref={heroParticlesRef} className="absolute inset-0 pointer-events-none overflow-hidden z-10">
-          {particles.map((p) => (
+        <div ref={heroParticlesRef} className="absolute inset-0 pointer-events-none overflow-hidden z-10" style={{ contain: 'strict' }}>
+          {(isMobile || isLowEnd ? particlesMobile : particles).map((p) => (
             <div
               key={p.id}
               data-hero-particle
-              className="absolute rounded-full will-change-transform"
+              className="absolute rounded-full"
               style={{
                 left: p.left, top: p.top,
                 width: `${p.size}px`, height: `${p.size}px`,
@@ -1051,12 +1125,19 @@ export default function HeroSection() {
           }}>
           <button
             onClick={openStory}
-            onMouseEnter={() => { setViewBtnHovered(true); storyOpenTimerRef.current = setTimeout(openStory, 720); }}
+            onMouseEnter={() => {
+              setViewBtnHovered(true);
+              // Only auto-open on hover for real pointer devices
+              if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+                storyOpenTimerRef.current = setTimeout(openStory, 720);
+              }
+            }}
             onMouseLeave={() => { setViewBtnHovered(false); if (storyOpenTimerRef.current) { clearTimeout(storyOpenTimerRef.current); storyOpenTimerRef.current = null; } }}
             className="view-story-btn"
             aria-label="View our story"
             data-cursor="video"
             data-cursor-label="Play"
+            style={{ touchAction: 'manipulation' }}
           >
             {/* Animated play ring */}
             <span className="story-ring">
@@ -1656,20 +1737,24 @@ export default function HeroSection() {
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           overflow: hidden;
-          cursor: none !important;
         }
         .story-overlay *, .story-overlay *::before, .story-overlay *::after {
-          cursor: none !important;
+          /* cursor: none only on real pointer devices, not touch */
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .story-overlay, .story-overlay *, .story-overlay *::before, .story-overlay *::after {
+            cursor: none !important;
+          }
         }
         .story-close-btn {
           position: fixed; top: 1.75rem; right: 1.75rem;
-          z-index: 9995; width: 40px; height: 40px;
+          z-index: 9995; width: 44px; height: 44px;
           background: rgba(237,233,227,0.06);
           border: 1px solid rgba(237,233,227,0.1);
-          border-radius: 50%; cursor: none !important;
+          border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
           transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-          outline: none;
+          outline: none; touch-action: manipulation;
         }
         .story-close-btn:hover {
           background: rgba(237,233,227,0.12);
@@ -1680,6 +1765,7 @@ export default function HeroSection() {
           position: absolute; inset: 0;
           overflow-y: auto; overflow-x: hidden;
           -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
         }
         .story-scroll-inner::-webkit-scrollbar { display: none; }
 

@@ -390,3 +390,67 @@ html.lenis body {
   from { transform: translate(-50%, -50%) rotate(0deg); }
   to   { transform: translate(-50%, -50%) rotate(360deg); }
 }
+
+/* ── Low-end PC optimisations ─────────────────────────────────────────────
+ *
+ * The @media (prefers-reduced-motion: no-preference) and hardware-sniffing
+ * JS already gate most animations. The rules below handle two extra cases:
+ *
+ * 1. `@media (update: slow)` — catches genuinely slow refresh-rate displays
+ *    and e-ink panels where infinite animations would look terrible.
+ * 2. `@media (prefers-reduced-motion: reduce)` — system-level opt-out; we
+ *    still want *some* transitions so we cut durations rather than removing
+ *    them entirely.
+ *
+ * Neither block changes visual identity — they only reduce workload.
+ */
+
+/* Slow-update displays: pause infinite CSS animations entirely */
+@media (update: slow) {
+  .animate-float,
+  .animate-float-reverse,
+  .animate-pulse-gold,
+  .animate-pulse-blue,
+  .animate-rotate-slow,
+  .animate-breathe,
+  .animate-light-sweep {
+    animation: none !important;
+  }
+}
+
+/* Reduced-motion: respect user preference, cut durations to ~30% */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-reverse,
+  .animate-float-reverse,
+  .animate-pulse-gold,
+  .animate-pulse-blue,
+  .animate-rotate-slow,
+  .animate-scroll-bounce,
+  .animate-breathe,
+  .animate-light-sweep {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* Keep functional transitions but make them instant */
+  *, *::before, *::after {
+    transition-duration: 0.1ms !important;
+  }
+}
+
+/* GPU compositing hints — only applied where elements are already animated
+ * so we don't waste layer budget on static elements.
+ * Use contain:strict on self-contained animated sections to avoid layout. */
+.orb-container {
+  contain: strict;
+  isolation: isolate;
+}
+
+/* Reduce backdrop-blur cost on low-power mode (Safari/iOS power saver) */
+@media (prefers-reduced-transparency) {
+  .glass-dark {
+    backdrop-filter: none !important;
+    background: rgba(10, 10, 18, 0.92) !important;
+  }
+}

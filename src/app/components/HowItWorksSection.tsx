@@ -49,6 +49,8 @@ function useCardTilt(intensity = 7) {
   const targetRef  = useRef({ rx: 0, ry: 0, gx: 50, gy: 50 });
   const currentRef = useRef({ rx: 0, ry: 0, gx: 50, gy: 50 });
   const [live, setLive] = useState({ rx: 0, ry: 0, gx: 50, gy: 50, active: false });
+  // No tilt on touch devices
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
 
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -65,7 +67,7 @@ function useCardTilt(intensity = 7) {
   };
 
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
+    if (isTouch || !ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top)  / rect.height;
@@ -77,7 +79,7 @@ function useCardTilt(intensity = 7) {
     };
   };
   const onMouseEnter = () => {
-    if (runningRef.current) return;
+    if (isTouch || runningRef.current) return;
     runningRef.current = true;
     frameRef.current = requestAnimationFrame(animate);
   };

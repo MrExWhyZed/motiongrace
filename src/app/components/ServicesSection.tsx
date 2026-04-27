@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 
 const services = [
   {
     id: 1,
     number: '01',
     title: 'Cinematic Commercials',
+    href: '/services/cinematic-product-commercials',
     description:
       'Luxury product films with full creative control. We craft 30–60 second hero spots that rival broadcast-quality campaigns — rendered entirely in CGI.',
     detail: 'No studio. No shoot day. No reshoot costs.',
@@ -27,6 +29,7 @@ const services = [
     id: 2,
     number: '02',
     title: 'Infinite Asset Kits',
+    href: '/services/infinite-asset-kit',
     description:
       'One product. Endless visuals. We build a digital twin of your product and generate unlimited campaign-ready assets — every angle, every mood, every season.',
     detail: 'Deliver 100+ assets in the time a photoshoot produces 20.',
@@ -46,6 +49,7 @@ const services = [
     id: 3,
     number: '03',
     title: 'Interactive 3D & AR',
+    href: '/services/interactive-3d',
     description:
       'Let your customers experience products in real time. Web-based 3D viewers and AR try-on experiences that increase conversion by up to 40%.',
     detail: 'Works on any device. No app download required.',
@@ -62,7 +66,7 @@ const services = [
   },
 ];
 
-type Service = (typeof services)[number];
+type Service = (typeof services)[number] & { href: string };
 
 function BackgroundMesh() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -337,12 +341,13 @@ function ServiceCard({
   };
 
   return (
-    <div
+    <Link
+      href={service.href}
       ref={(element) => {
-        wrapperRef.current = element;
-        setRef(element);
+        wrapperRef.current = element as HTMLDivElement | null;
+        setRef(element as HTMLDivElement | null);
       }}
-      className="relative"
+      className="relative block"
       onMouseEnter={() => onHover(service.id)}
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
@@ -519,7 +524,7 @@ function ServiceCard({
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -532,6 +537,11 @@ export default function ServicesSection() {
 
   useEffect(() => {
     if (!sectionRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+    const useBlur = cores > 4 && memory > 4
+      && !window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
 
     let mounted = true;
     let cleanup = () => {};
@@ -556,12 +566,12 @@ export default function ServicesSection() {
             {
               autoAlpha: 0,
               y: 26,
-              filter: 'blur(10px)',
+              ...(useBlur ? { filter: 'blur(10px)' } : {}),
             },
             {
               autoAlpha: 1,
               y: 0,
-              filter: 'blur(0px)',
+              ...(useBlur ? { filter: 'blur(0px)' } : {}),
               duration: 1,
               stagger: 0.08,
               ease: 'power3.out',
@@ -580,13 +590,13 @@ export default function ServicesSection() {
             autoAlpha: 0,
             y: 52,
             scale: 0.96,
-            filter: 'blur(12px)',
+            ...(useBlur ? { filter: 'blur(12px)' } : {}),
           },
           {
             autoAlpha: 1,
             y: 0,
             scale: 1,
-            filter: 'blur(0px)',
+            ...(useBlur ? { filter: 'blur(0px)' } : {}),
             duration: 1.05,
             stagger: 0.1,
             ease: 'power3.out',
@@ -744,6 +754,20 @@ export default function ServicesSection() {
                   <p className="text-xs font-medium tracking-wide" style={{ color: service.accent }}>
                     {service.detail}
                   </p>
+                  <Link
+                    href={service.href}
+                    className="inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] transition-all duration-300"
+                    style={{
+                      background: `rgba(${service.accentRgb},0.08)`,
+                      border: `1px solid rgba(${service.accentRgb},0.2)`,
+                      color: service.accent,
+                    }}
+                  >
+                    View Service
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </Link>
                 </div>
               </div>
             </div>

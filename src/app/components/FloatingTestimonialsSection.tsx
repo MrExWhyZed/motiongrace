@@ -162,6 +162,12 @@ export default function FloatingTestimonialsSection() {
   useEffect(() => {
     if (!sectionRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    // Skip blur filters on low-end desktops
+    const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+    const useBlur = cores > 4 && memory > 4
+      && !window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
+
     let mounted = true;
     let cleanup = () => {};
 
@@ -197,11 +203,11 @@ export default function FloatingTestimonialsSection() {
         if (headerRef.current) {
           gsap.fromTo(
             headerRef.current,
-            { autoAlpha: 0, y: 30, filter: 'blur(10px)' },
+            { autoAlpha: 0, y: 30, ...(useBlur ? { filter: 'blur(10px)' } : {}) },
             {
               autoAlpha: 1,
               y: 0,
-              filter: 'blur(0px)',
+              ...(useBlur ? { filter: 'blur(0px)' } : {}),
               duration: 1.05,
               ease: 'power3.out',
               scrollTrigger: {
@@ -221,7 +227,7 @@ export default function FloatingTestimonialsSection() {
             y: 48,
             x: config.x,
             scale: 0.92,
-            filter: 'blur(10px)',
+            ...(useBlur ? { filter: 'blur(10px)' } : {}),
           });
 
           gsap.to(card, {
@@ -229,7 +235,7 @@ export default function FloatingTestimonialsSection() {
             y: 0,
             x: 0,
             scale: 1,
-            filter: 'blur(0px)',
+            ...(useBlur ? { filter: 'blur(0px)' } : {}),
             duration: 1,
             delay: index * 0.08,
             ease: 'power3.out',

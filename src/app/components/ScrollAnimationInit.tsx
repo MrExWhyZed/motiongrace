@@ -6,6 +6,14 @@ export default function ScrollAnimationInit() {
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    const isMobile = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
+
+    // Also disable blur filters on low-end desktops (4-core / ≤4 GB RAM)
+    const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+    const isLowEnd = !isMobile && (cores <= 4 || memory <= 4);
+    const useBlur = !isMobile && !isLowEnd;
+
     let mounted = true;
     let teardown = () => {};
 
@@ -40,8 +48,11 @@ export default function ScrollAnimationInit() {
         reveals.forEach((element) => {
           const type = element.dataset.reveal ?? 'up';
           const delay = Number(element.dataset.delay ?? 0) / 1000;
-          const fromVars =
-            type === 'left'
+
+          // Mobile: simple fade-up only, no blur (expensive filter compositing)
+          const fromVars = isMobile
+            ? { autoAlpha: 0, y: 16 }
+            : type === 'left'
               ? { autoAlpha: 0, x: -36, y: 0, scale: 1 }
               : type === 'right'
                 ? { autoAlpha: 0, x: 36, y: 0, scale: 1 }
@@ -49,30 +60,29 @@ export default function ScrollAnimationInit() {
                   ? { autoAlpha: 0, x: 0, y: 18, scale: 0.94 }
                   : { autoAlpha: 0, x: 0, y: 34, scale: 1 };
 
-          gsap.fromTo(
-            element,
-            {
-              ...fromVars,
-              filter: 'blur(10px)',
-              willChange: 'transform, opacity, filter',
+          const toVars: gsap.TweenVars = {
+            autoAlpha: 1,
+            x: 0,
+            y: 0,
+            scale: 1,
+            duration: isMobile ? 0.7 : 1.15,
+            delay,
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: element,
+              start: 'top 90%',
+              once: true,
             },
-            {
-              autoAlpha: 1,
-              x: 0,
-              y: 0,
-              scale: 1,
-              filter: 'blur(0px)',
-              duration: 1.15,
-              delay,
-              ease: 'power3.out',
-              clearProps: 'willChange',
-              scrollTrigger: {
-                trigger: element,
-                start: 'top 88%',
-                once: true,
-              },
-            }
-          );
+          };
+
+          if (useBlur) {
+            (fromVars as gsap.TweenVars).filter = 'blur(10px)';
+            (fromVars as gsap.TweenVars).willChange = 'transform, opacity, filter';
+            toVars.filter = 'blur(0px)';
+            toVars.clearProps = 'willChange';
+          }
+
+          gsap.fromTo(element, fromVars as gsap.TweenVars, toVars);
         });
 
         const sections = gsap.utils.toArray<HTMLElement>('[data-gsap-section]');
@@ -85,16 +95,16 @@ export default function ScrollAnimationInit() {
           if (mode !== 'sticky' && mode !== 'hero' && mode !== 'bridge') {
             gsap.fromTo(
               section,
-              { autoAlpha: 0.72, y: 30 },
+              { autoAlpha: 0.72, y: isMobile ? 12 : 30 },
               {
                 autoAlpha: 1,
                 y: 0,
-                duration: 1.2,
+                duration: isMobile ? 0.7 : 1.2,
                 ease: 'power3.out',
                 clearProps: 'transform',
                 scrollTrigger: {
                   trigger: section,
-                  start: 'top 82%',
+                  start: 'top 85%',
                   once: true,
                 },
               }
@@ -102,44 +112,47 @@ export default function ScrollAnimationInit() {
           }
 
           if (cards.length > 0) {
-            gsap.fromTo(
-              cards,
-              {
-                autoAlpha: 0,
-                y: 24,
-                scale: 0.985,
-                filter: 'blur(8px)',
-              },
-              {
-                autoAlpha: 1,
-                y: 0,
-                scale: 1,
-                filter: 'blur(0px)',
-                duration: 1,
-                stagger: 0.08,
-                ease: 'power3.out',
-                scrollTrigger: {
-                  trigger: section,
-                  start: 'top 74%',
-                  once: true,
-                },
-              }
-            );
-          }
-
-          media.forEach((element) => {
-            const speed = Number(element.dataset.gsapMedia ?? 10);
-            gsap.to(element, {
-              yPercent: speed,
-              ease: 'none',
+            const cardFrom: gsap.TweenVars = { autoAlpha: 0, y: isMobile ? 12 : 24 };
+            const cardTo: gsap.TweenVars = {
+              autoAlpha: 1,
+              y: 0,
+              duration: isMobile ? 0.6 : 1,
+              stagger: isMobile ? 0.05 : 0.08,
+              ease: 'power3.out',
               scrollTrigger: {
                 trigger: section,
-                start: 'top bottom',
-                end: 'bottom top',
-                scrub: 1.4,
+                start: 'top 80%',
+                once: true,
               },
+            };
+            if (useBlur) {
+              cardFrom.scale = 0.985;
+              cardFrom.filter = 'blur(8px)';
+              cardTo.scale = 1;
+              cardTo.filter = 'blur(0px)';
+            } else if (!isMobile) {
+              cardFrom.scale = 0.985;
+              cardTo.scale = 1;
+            }
+            gsap.fromTo(cards, cardFrom, cardTo);
+          }
+
+          // Skip parallax on mobile and low-end desktops — causes jank
+          if (!isMobile && !isLowEnd) {
+            media.forEach((element) => {
+              const speed = Number(element.dataset.gsapMedia ?? 10);
+              gsap.to(element, {
+                yPercent: speed,
+                ease: 'none',
+                scrollTrigger: {
+                  trigger: section,
+                  start: 'top bottom',
+                  end: 'bottom top',
+                  scrub: 1.4,
+                },
+              });
             });
-          });
+          }
 
           if (glow) {
             gsap.fromTo(
@@ -161,12 +174,12 @@ export default function ScrollAnimationInit() {
         gsap.utils.toArray<HTMLElement>('[data-gsap-button]').forEach((button, index) => {
           gsap.fromTo(
             button,
-            { autoAlpha: 0, y: 18, scale: 0.96 },
+            { autoAlpha: 0, y: isMobile ? 10 : 18, scale: isMobile ? 1 : 0.96 },
             {
               autoAlpha: 1,
               y: 0,
               scale: 1,
-              duration: 0.85,
+              duration: isMobile ? 0.5 : 0.85,
               delay: index * 0.06,
               ease: 'power3.out',
               scrollTrigger: {
