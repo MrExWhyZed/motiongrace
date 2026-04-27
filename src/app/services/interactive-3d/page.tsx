@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Footer from '@/components/Footer';
 import ScrollAnimationInit from '@/app/components/ScrollAnimationInit';
 import ServicePageNav from '@/app/components/ServicePageNav';
@@ -27,6 +27,12 @@ const specs = [
 ];
 
 export default function Interactive3D() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
   return (
     <main className="relative bg-background [overflow-x:clip]">
       <style>{`
@@ -53,6 +59,13 @@ export default function Interactive3D() {
 
       <ScrollAnimationInit />
       <ServicePageNav accentColor="#8B5CF6" accentRgb="139,92,246" />
+      <div
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(18px)',
+          transition: 'opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
 
       {/* ── HERO ── */}
       <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -313,6 +326,7 @@ export default function Interactive3D() {
       </section>
 
       <Footer />
+      </div>
     </main>
   );
 }

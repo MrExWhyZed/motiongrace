@@ -251,7 +251,7 @@ const PricingCard = React.memo(function PricingCard({
             >
               Get started
             </Link>
-            <Link href="/pricing" style={{
+            <Link href="https://www.motiongraceco.com/pricing" style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: '12px 20px', borderRadius: '999px',
               border: `1px solid ${plan.accent}25`, background: 'rgba(255,255,255,0.03)',
@@ -284,9 +284,10 @@ const UpgradeCard = React.memo(function UpgradeCard({ stat }: { stat: UpgradeSta
       position: 'relative', borderRadius: '22px', overflow: 'hidden',
       border: `1px solid rgba(${stat.accentRgb},0.15)`,
       background: 'rgba(10,10,20,0.98)',
-      padding: 'clamp(20px, 3vw, 28px)',
+      padding: 'clamp(24px, 4vw, 36px)',
       boxShadow: `0 0 40px rgba(${stat.accentRgb},0.05)`,
       transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease',
+      display: 'flex', flexDirection: 'column', height: '100%',
     }}
     onMouseEnter={e => {
       (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
@@ -502,9 +503,10 @@ export default function TransformationSection() {
                 {/* Upgrade stats grid */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
-                  gap: 'clamp(12px, 2vw, 20px)',
-                  marginBottom: 'clamp(24px, 4vw, 40px)',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+                  gap: 'clamp(14px, 2.5vw, 24px)',
+                  alignItems: 'stretch',
+                  marginBottom: 'clamp(16px, 3vw, 32px)',
                 }}>
                   {upgradeStats.map(stat => (
                     <UpgradeCard key={stat.label} stat={stat} />
@@ -512,7 +514,7 @@ export default function TransformationSection() {
                 </div>
 
                 {/* Chip row */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(8px, 1.5vw, 12px)', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(8px, 1.5vw, 12px)', flexWrap: 'wrap', marginTop: 'clamp(16px, 3vw, 32px)' }}>
                   {[
                     { label: '1 digital twin',   accent: BF[0], accentRgb: BF_RGB[0] },
                     { label: 'Every campaign',   accent: BF[1], accentRgb: BF_RGB[1] },

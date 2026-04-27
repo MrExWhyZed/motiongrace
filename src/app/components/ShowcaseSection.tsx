@@ -44,8 +44,12 @@ const showcaseItems = [
 type Item = typeof showcaseItems[0];
 
 // ─── Particles ────────────────────────────────────────────────────────────────
-type Particle = { id: number; x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number };
+type Particle = {
+  id: number; x: number; y: number; vx: number; vy: number;
+  life: number; maxLife: number; size: number;
+};
 
+// FIX: activeRef is passed in (stable, card-owned) — never created inline at call site
 function useParticles(activeRef: React.MutableRefObject<boolean>, accentRgb: string) {
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
@@ -58,14 +62,12 @@ function useParticles(activeRef: React.MutableRefObject<boolean>, accentRgb: str
     const ctx2d = canvas.getContext('2d');
     if (!ctx2d) return;
 
-    // Detect low-end desktop: throttle to ~30fps and reduce particle count
-    const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
-    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+    const cores    = (navigator as any).hardwareConcurrency ?? 8;
+    const memory   = (navigator as any).deviceMemory ?? 8;
     const isLowEnd = cores <= 4 || memory <= 4;
-    const SPAWN_EVERY = isLowEnd ? 6 : 3; // spawn less often on low-end
+    const SPAWN_EVERY   = isLowEnd ? 6 : 3;
     const MAX_PARTICLES = isLowEnd ? 20 : 60;
 
-    // Pause rAF when tab is hidden
     let visible = !document.hidden;
     const onVisibility = () => { visible = !document.hidden; };
     document.addEventListener('visibilitychange', onVisibility);
@@ -74,19 +76,13 @@ function useParticles(activeRef: React.MutableRefObject<boolean>, accentRgb: str
     let lastTime = 0;
     const loop = (now: number) => {
       rafRef.current = requestAnimationFrame(loop);
-
-      // Tab hidden → skip all work
       if (!visible) return;
-
-      // Low-end: ~30fps cap
       if (isLowEnd && now - lastTime < 32) return;
       lastTime = now;
 
       ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-      if (!activeRef.current) {
-        particlesRef.current = [];
-        return;
-      }
+      if (!activeRef.current) { particlesRef.current = []; return; }
+
       if (frame % SPAWN_EVERY === 0 && particlesRef.current.length < MAX_PARTICLES) {
         const edge = Math.random();
         let x = 0, y = 0;
@@ -126,70 +122,48 @@ function useParticles(activeRef: React.MutableRefObject<boolean>, accentRgb: str
 }
 
 // ─── MediaBackground ──────────────────────────────────────────────────────────
-// Renders image/gif/video as the card background — flicker-free
 const MediaBackground = React.memo(function MediaBackground({
-  item,
-  mediaRef,
+  item, mediaRef,
 }: {
   item: Item;
   mediaRef: React.MutableRefObject<HTMLVideoElement | HTMLImageElement | null>;
 }) {
-  const sharedStyle: React.CSSProperties = {
-    position: 'absolute', inset: 0, width: '100%', height: '100%',
-    objectFit: 'cover',
+  const shared: React.CSSProperties = {
+    position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
   };
-
   if (item.mediaType === 'video') {
     return (
       <video
         ref={mediaRef as React.MutableRefObject<HTMLVideoElement>}
-        src={item.image}
-        autoPlay
-        loop
-        muted
-        playsInline
-        disablePictureInPicture
-        preload="auto"
-        style={{
-          ...sharedStyle,
-          // GPU-composited layer prevents flicker on video elements
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-          WebkitBackfaceVisibility: 'hidden',
-        }}
+        src={item.image} autoPlay loop muted playsInline disablePictureInPicture preload="auto"
+        style={{ ...shared, transform: 'translateZ(0)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
       />
     );
   }
-
-  // image or gif
   return (
     <img
       ref={mediaRef as React.MutableRefObject<HTMLImageElement>}
-      src={item.image}
-      alt={item.alt}
-      style={{
-        ...sharedStyle,
-        transform: 'translateZ(0)',
-        backfaceVisibility: 'hidden',
-      }}
+      src={item.image} alt={item.alt}
+      style={{ ...shared, transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
     />
   );
 });
 
 // ─── ShowcaseCard ─────────────────────────────────────────────────────────────
 const ShowcaseCard = React.memo(function ShowcaseCard({
-  item,
-  gsapRef,
-  onEnter,
-  onLeave,
+  item, index, gsapRef, onEnter, onLeave,
 }: {
   item: Item;
+  index: number;
   gsapRef: React.MutableRefObject<typeof import('gsap').gsap | null>;
   onEnter: (id: number, wrapperEl: HTMLElement) => void;
-  onLeave: (wrapperEl: HTMLElement) => void;
+  onLeave:  (wrapperEl: HTMLElement) => void;
 }) {
   const wrapperRef    = useRef<HTMLDivElement>(null);
   const cardRef       = useRef<HTMLDivElement>(null);
+  // tiltRef is a dedicated wrapper ONLY for rAF perspective/tilt transforms.
+  // cardRef is GSAP-only (height, shadow, border). Never cross-write between them.
+  const tiltRef       = useRef<HTMLDivElement>(null);
   const mediaRef      = useRef<HTMLVideoElement | HTMLImageElement | null>(null);
   const glowRef       = useRef<HTMLDivElement>(null);
   const dotRef        = useRef<HTMLDivElement>(null);
@@ -197,87 +171,61 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
   const sweepRef      = useRef<HTMLDivElement>(null);
   const innerGlowRef  = useRef<HTMLDivElement>(null);
   const cornersRef    = useRef<(HTMLDivElement | null)[]>([]);
-  const particleCanvas = useParticles(useRef(false), item.accentRgb);
-  const activeRef     = useRef(false);
 
-  const isHoveredRef  = useRef(false);
-  const mouseLive     = useRef({ x: 0.5, y: 0.5 });
-  const mouseSmooth   = useRef({ x: 0.5, y: 0.5 });
-  const tiltSmooth    = useRef({ rx: 0, ry: 0 });
-  const magSmooth     = useRef({ x: 0, y: 0 });
-  const rafRef        = useRef<number>(0);
+  // FIX: stable refs owned here, never created inline
+  const activeRef      = useRef(false);
+  const particleCanvas = useParticles(activeRef, item.accentRgb);
 
-  const depthY = [0, -24, -48][item.depth];
+  const isHoveredRef = useRef(false);
+  const mouseLive    = useRef({ x: 0.5, y: 0.5 });
+  const mouseSmooth  = useRef({ x: 0.5, y: 0.5 });
+  const tiltSmooth   = useRef({ rx: 0, ry: 0 });
+  const magSmooth    = useRef({ x: 0, y: 0 });
+  const rafRef       = useRef<number>(0);
 
-  // Sync activeRef with particle hook
-  const particleActiveRef = (particleCanvas as any)._activeRef ?? useRef(false);
+  // Float: each card drifts at its own pace/phase so they feel organic and independent.
+  // depth controls amplitude (how far it travels), index staggers the phase so no
+  // two cards peak or trough at the same time.
+  const floatAmplitude = [10, 18, 26][item.depth]; // px — deeper = more movement
+  const floatDuration  = [4.2, 5.1, 3.8][item.depth]; // seconds — varied speed
+  const floatDelay     = -(index % 5) * 0.9; // negative = start mid-animation, no sync pop
 
-  // ── rAF tilt/parallax loop ─────────────────────────────────────────────────
+  // ── rAF tilt/parallax ─────────────────────────────────────────────────────
   useEffect(() => {
-    const LM = 0.12, LT = 0.08, LG = 0.07;
-    // Epsilon: if all smoothed values are close to target, skip DOM writes
-    const IDLE_EPS = 0.001;
-
+    const LM = 0.12, LT = 0.08, LG = 0.07, EPS = 0.001;
     const tick = () => {
       rafRef.current = requestAnimationFrame(tick);
-
-      // Skip all work when tab is hidden
       if (document.hidden) return;
 
       const hov = isHoveredRef.current;
-      const tx  = hov ? mouseLive.current.x : 0.5;
-      const ty  = hov ? mouseLive.current.y : 0.5;
+      mouseSmooth.current.x += ((hov ? mouseLive.current.x : 0.5) - mouseSmooth.current.x) * LM;
+      mouseSmooth.current.y += ((hov ? mouseLive.current.y : 0.5) - mouseSmooth.current.y) * LM;
+      const mx = mouseSmooth.current.x, my = mouseSmooth.current.y;
 
-      mouseSmooth.current.x += (tx - mouseSmooth.current.x) * LM;
-      mouseSmooth.current.y += (ty - mouseSmooth.current.y) * LM;
+      tiltSmooth.current.rx += ((hov ? (my - 0.5) * -14 : 0) - tiltSmooth.current.rx) * LT;
+      tiltSmooth.current.ry += ((hov ? (mx - 0.5) *  14 : 0) - tiltSmooth.current.ry) * LT;
+      magSmooth.current.x   += ((hov ? (mx - 0.5) *  18 : 0) - magSmooth.current.x)   * LG;
+      magSmooth.current.y   += ((hov ? (my - 0.5) *  10 : 0) - magSmooth.current.y)   * LG;
 
-      const mx = mouseSmooth.current.x;
-      const my = mouseSmooth.current.y;
+      const idle = !hov
+        && Math.abs(tiltSmooth.current.rx) < EPS && Math.abs(tiltSmooth.current.ry) < EPS
+        && Math.abs(magSmooth.current.x)   < EPS && Math.abs(magSmooth.current.y)   < EPS;
+      if (idle) return;
 
-      const targetRx = hov ? (my - 0.5) * -14 : 0;
-      const targetRy = hov ? (mx - 0.5) *  14 : 0;
-      const targetGx = hov ? (mx - 0.5) *  18 : 0;
-      const targetGy = hov ? (my - 0.5) *  10 : 0;
-
-      tiltSmooth.current.rx += (targetRx - tiltSmooth.current.rx) * LT;
-      tiltSmooth.current.ry += (targetRy - tiltSmooth.current.ry) * LT;
-      magSmooth.current.x   += (targetGx - magSmooth.current.x)   * LG;
-      magSmooth.current.y   += (targetGy - magSmooth.current.y)   * LG;
-
-      // Skip DOM writes if everything has settled to rest (not hovering + fully damped)
-      const isIdle = !hov
-        && Math.abs(tiltSmooth.current.rx) < IDLE_EPS
-        && Math.abs(tiltSmooth.current.ry) < IDLE_EPS
-        && Math.abs(magSmooth.current.x)   < IDLE_EPS
-        && Math.abs(magSmooth.current.y)   < IDLE_EPS;
-      if (isIdle) return;
-
-      if (wrapperRef.current) {
-        wrapperRef.current.style.transform =
-          `translateY(${depthY}px) translate(${magSmooth.current.x * 0.4}px,${magSmooth.current.y * 0.4}px)`;
-      }
-      if (cardRef.current) {
-        cardRef.current.style.transform =
-          `perspective(900px) rotateX(${tiltSmooth.current.rx}deg) rotateY(${tiltSmooth.current.ry}deg) translate(${magSmooth.current.x * 0.6}px,${magSmooth.current.y * 0.6}px)`;
-      }
-
-      // Only apply image parallax on non-video media — never touch video transform
-      if (mediaRef.current && hov && item.mediaType !== 'video') {
-        (mediaRef.current as HTMLImageElement).style.transform =
-          `translateZ(0) scale(1.12) translate(${(mx - 0.5) * -8}px,${(my - 0.5) * -8}px)`;
-      }
-
-      if (glowRef.current) {
-        glowRef.current.style.background =
-          `radial-gradient(circle at ${mx * 100}% ${my * 100}%, rgba(${item.accentRgb},0.18) 0%, transparent 55%)`;
-      }
+      // rAF owns tiltRef exclusively for transform. cardRef is GSAP-only.
+      if (tiltRef.current)
+        tiltRef.current.style.transform = `perspective(900px) rotateX(${tiltSmooth.current.rx}deg) rotateY(${tiltSmooth.current.ry}deg) translate(${magSmooth.current.x * 0.6}px,${magSmooth.current.y * 0.6}px)`;
+      if (mediaRef.current && hov && item.mediaType !== 'video')
+        (mediaRef.current as HTMLImageElement).style.transform = `translateZ(0) scale(1.12) translate(${(mx-0.5)*-8}px,${(my-0.5)*-8}px)`;
+      if (glowRef.current)
+        glowRef.current.style.background = `radial-gradient(circle at ${mx*100}% ${my*100}%, rgba(${item.accentRgb},0.18) 0%, transparent 55%)`;
       if (dotRef.current) {
-        dotRef.current.style.left = `calc(${mx * 100}% - 5px)`;
-        dotRef.current.style.top  = `calc(${my * 100}% - 5px)`;
+        dotRef.current.style.left = `calc(${mx*100}% - 5px)`;
+        dotRef.current.style.top  = `calc(${my*100}% - 5px)`;
       }
       if (ringRef.current) {
-        ringRef.current.style.left = `calc(${mx * 100}% - 22px)`;
-        ringRef.current.style.top  = `calc(${my * 100}% - 22px)`;
+        ringRef.current.style.left = `calc(${mx*100}% - 22px)`;
+        ringRef.current.style.top  = `calc(${my*100}% - 22px)`;
       }
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -285,7 +233,7 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── GSAP hover-in ──────────────────────────────────────────────────────────
+  // ── GSAP hover-in ─────────────────────────────────────────────────────────
   const playHoverIn = useCallback(() => {
     const g = gsapRef.current;
     if (!g || !wrapperRef.current || !cardRef.current) return;
@@ -299,31 +247,31 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
       borderColor: `rgba(${item.accentRgb},0.3)`,
       duration: 0.72, ease: 'power3.out', overwrite: 'auto',
     });
-
     if (particleCanvas.current) g.to(particleCanvas.current, { opacity: 1, duration: 0.4, ease: 'power2.out' });
-
-    // Only animate filter on non-video elements to prevent flicker
-    if (mediaRef.current && item.mediaType !== 'video') {
+    if (mediaRef.current && item.mediaType !== 'video')
       g.to(mediaRef.current, { filter: 'saturate(1.1) brightness(0.9)', duration: 0.5, ease: 'power2.out' });
-    }
-
     if (glowRef.current)      g.to(glowRef.current,      { opacity: 1, duration: 0.4, ease: 'power2.out' });
     if (sweepRef.current)     g.fromTo(sweepRef.current, { yPercent: -100 }, { yPercent: 100, duration: 0.8, ease: 'power2.inOut' });
     if (innerGlowRef.current) g.to(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.2)`, duration: 0.5, ease: 'power2.out' });
     if (dotRef.current)       g.to(dotRef.current,  { opacity: 0.9, duration: 0.3, ease: 'power2.out' });
     if (ringRef.current)      g.to(ringRef.current, { opacity: 1,   duration: 0.3, ease: 'power2.out' });
-
     cornersRef.current.forEach((el, i) => {
       if (el) g.to(el, { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out', delay: i * 0.06 });
     });
   }, [gsapRef, item.accentRgb, item.mediaType, particleCanvas]);
 
-  // ── GSAP hover-out ─────────────────────────────────────────────────────────
+  // ── GSAP hover-out ────────────────────────────────────────────────────────
   const playHoverOut = useCallback(() => {
     const g = gsapRef.current;
     if (!g || !wrapperRef.current || !cardRef.current) return;
     isHoveredRef.current = false;
-    activeRef.current    = false;
+    // Flip activeRef synchronously. The canvas element's opacity is what GSAP
+    // fades visually — activeRef only gates particle spawning. Keeping it in
+    // onComplete caused orphaned callbacks: if playHoverIn fired before the
+    // fade-out tween completed, overwrite:'auto' killed the tween but the
+    // onComplete never ran, leaving activeRef permanently true or firing at a
+    // random future frame mid-next-hover-in. Each cycle leaked one callback.
+    activeRef.current = false;
 
     g.to(wrapperRef.current, { width: 'clamp(260px,26vw,340px)', duration: 0.65, ease: 'power3.out', overwrite: 'auto' });
     g.to(cardRef.current, {
@@ -332,47 +280,35 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
       borderColor: `rgba(${item.accentRgb},0.07)`,
       duration: 0.65, ease: 'power3.out', overwrite: 'auto',
     });
-
     if (particleCanvas.current) g.to(particleCanvas.current, { opacity: 0, duration: 0.35, ease: 'power2.in' });
-
-    if (mediaRef.current && item.mediaType !== 'video') {
+    if (mediaRef.current && item.mediaType !== 'video')
       g.to(mediaRef.current, { scale: 1, x: 0, y: 0, filter: 'saturate(0.85) brightness(0.85)', duration: 1.8, ease: 'power3.out' });
-    }
-
     if (glowRef.current)      g.to(glowRef.current,      { opacity: 0, duration: 0.4, ease: 'power2.in' });
     if (dotRef.current)       g.to(dotRef.current,       { opacity: 0, duration: 0.25, ease: 'power2.in' });
     if (ringRef.current)      g.to(ringRef.current,      { opacity: 0, duration: 0.25, ease: 'power2.in' });
     if (innerGlowRef.current) g.to(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.04)`, duration: 0.4, ease: 'power2.in' });
-
     cornersRef.current.forEach(el => {
       if (el) g.to(el, { opacity: 0, scale: 0.6, duration: 0.35, ease: 'power2.in' });
     });
   }, [gsapRef, item.accentRgb, item.mediaType, particleCanvas]);
 
-  // Expose methods via DOM
   useEffect(() => {
     if (!wrapperRef.current) return;
     (wrapperRef.current as any).__hoverIn  = playHoverIn;
     (wrapperRef.current as any).__hoverOut = playHoverOut;
   }, [playHoverIn, playHoverOut]);
 
-  // Set initial GSAP states
   useEffect(() => {
     const tryInit = () => {
       const g = gsapRef.current;
       if (!g) { requestAnimationFrame(tryInit); return; }
-
       if (glowRef.current)      g.set(glowRef.current,      { opacity: 0 });
       if (dotRef.current)       g.set(dotRef.current,       { opacity: 0 });
       if (ringRef.current)      g.set(ringRef.current,      { opacity: 0 });
       if (innerGlowRef.current) g.set(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.04)` });
       if (particleCanvas.current) g.set(particleCanvas.current, { opacity: 0 });
-
-      // Only set filter on non-video elements
-      if (mediaRef.current && item.mediaType !== 'video') {
+      if (mediaRef.current && item.mediaType !== 'video')
         g.set(mediaRef.current, { filter: 'saturate(0.85) brightness(0.85)' });
-      }
-
       cornersRef.current.forEach(el => el && g.set(el, { opacity: 0, scale: 0.6 }));
     };
     tryInit();
@@ -391,96 +327,196 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
       ref={wrapperRef}
       data-showcase-wrapper="true"
       data-cursor="image"
+      onMouseEnter={() => onEnter(item.id, wrapperRef.current!)}
+      onMouseLeave={() => onLeave(wrapperRef.current!)}
       style={{
         flexShrink: 0,
         width: 'clamp(260px,26vw,340px)',
+        contain: 'layout style',
+        transform: 'translateZ(0)',
         willChange: 'transform, width',
         zIndex: 1, position: 'relative',
+        animation: `card-float ${floatDuration}s ease-in-out infinite`,
+        animationDelay: `${floatDelay}s`,
+        // CSS var picked up by the keyframe
+        ['--float-y' as any]: `${floatAmplitude}px`,
       }}
     >
       <div
         ref={cardRef}
-        onMouseEnter={() => onEnter(item.id, wrapperRef.current!)}
-        onMouseLeave={() => onLeave(wrapperRef.current!)}
         onMouseMove={handleMouseMove}
         style={{
           position: 'relative', borderRadius: '18px', overflow: 'hidden',
-          height: 'clamp(340px,44vw,460px)',
-          cursor: 'none',
+          height: 'clamp(340px,44vw,460px)', cursor: 'none',
           border: `1px solid rgba(${item.accentRgb},0.07)`,
           boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
-          willChange: 'transform, height',
-          // Isolate stacking context to prevent paint bleed / flicker
+          willChange: 'height',
           isolation: 'isolate',
         }}
       >
-        {/* Particles */}
-        <canvas
-          ref={particleCanvas}
-          width={620}
-          height={560}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}
+        {/* tiltRef: rAF writes perspective/tilt transform here ONLY.
+            cardRef above is GSAP-only (height/shadow/border). Never cross-write. */}
+        <div ref={tiltRef} style={{ position:'absolute', inset:0, willChange:'transform' }}>
+        <canvas ref={particleCanvas} width={620} height={560}
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:5 }}
         />
-
-        {/* Media background */}
         <MediaBackground item={item} mediaRef={mediaRef} />
+        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.55) 100%)', pointerEvents:'none', zIndex:2 }} />
+        <div ref={glowRef} style={{ position:'absolute', inset:0, mixBlendMode:'screen', pointerEvents:'none', zIndex:3 }} />
+        <div ref={sweepRef} style={{ position:'absolute', inset:0, zIndex:4, pointerEvents:'none', background:`linear-gradient(to bottom, transparent 0%, rgba(${item.accentRgb},0.06) 50%, transparent 100%)`, transform:'translateY(-100%)' }} />
+        <div ref={innerGlowRef} style={{ position:'absolute', inset:0, borderRadius:'18px', pointerEvents:'none', zIndex:6 }} />
 
-        {/* Subtle vignette — no text gradient needed */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.55) 100%)',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }} />
-
-        {/* Cursor glow */}
-        <div ref={glowRef} style={{ position: 'absolute', inset: 0, mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 3 }} />
-
-        {/* Sweep shimmer */}
-        <div ref={sweepRef} style={{
-          position: 'absolute', inset: 0, zIndex: 4, pointerEvents: 'none',
-          background: `linear-gradient(to bottom, transparent 0%, rgba(${item.accentRgb},0.06) 50%, transparent 100%)`,
-          transform: 'translateY(-100%)',
-        }} />
-
-        {/* Inner glow border */}
-        <div ref={innerGlowRef} style={{ position: 'absolute', inset: 0, borderRadius: '18px', pointerEvents: 'none', zIndex: 6 }} />
-
-        {/* Corner brackets */}
         {[
-          { top: 14, left: 14,    bt: true,  bl: true  },
-          { top: 14, right: 14,   bt: true,  br: true  },
-          { bottom: 14, left: 14,  bb: true,  bl: true  },
-          { bottom: 14, right: 14, bb: true,  br: true  },
+          { top:14, left:14,    bt:true, bl:true  },
+          { top:14, right:14,   bt:true, br:true  },
+          { bottom:14, left:14,  bb:true, bl:true  },
+          { bottom:14, right:14, bb:true, br:true  },
         ].map((c, ci) => (
           <div key={ci} ref={el => { cornersRef.current[ci] = el; }} style={{
-            position: 'absolute', width: '20px', height: '20px', zIndex: 7,
-            top: (c as any).top, bottom: (c as any).bottom,
-            left: (c as any).left, right: (c as any).right,
+            position:'absolute', width:'20px', height:'20px', zIndex:7,
+            top:(c as any).top, bottom:(c as any).bottom, left:(c as any).left, right:(c as any).right,
             borderTop:    (c as any).bt ? `1px solid rgba(${item.accentRgb},0.6)` : 'none',
             borderBottom: (c as any).bb ? `1px solid rgba(${item.accentRgb},0.6)` : 'none',
             borderLeft:   (c as any).bl ? `1px solid rgba(${item.accentRgb},0.6)` : 'none',
             borderRight:  (c as any).br ? `1px solid rgba(${item.accentRgb},0.6)` : 'none',
-            pointerEvents: 'none',
+            pointerEvents:'none',
           }} />
         ))}
 
-        {/* Dot + ring cursors */}
-        <div ref={dotRef} style={{
-          position: 'absolute', zIndex: 20, pointerEvents: 'none',
-          width: '10px', height: '10px', borderRadius: '50%',
-          background: item.accent, boxShadow: `0 0 16px 4px rgba(${item.accentRgb},0.5)`,
-          mixBlendMode: 'screen',
-        }} />
-        <div ref={ringRef} style={{
-          position: 'absolute', zIndex: 19, pointerEvents: 'none',
-          width: '44px', height: '44px', borderRadius: '50%',
-          border: `1px solid rgba(${item.accentRgb},0.35)`,
-        }} />
+        <div ref={dotRef} style={{ position:'absolute', zIndex:20, pointerEvents:'none', width:'10px', height:'10px', borderRadius:'50%', background:item.accent, boxShadow:`0 0 16px 4px rgba(${item.accentRgb},0.5)`, mixBlendMode:'screen' }} />
+        <div ref={ringRef} style={{ position:'absolute', zIndex:19, pointerEvents:'none', width:'44px', height:'44px', borderRadius:'50%', border:`1px solid rgba(${item.accentRgb},0.35)` }} />
+        </div>
       </div>
     </div>
   );
 });
+
+// ─── Mobile Card ──────────────────────────────────────────────────────────────
+const MobileCard = React.memo(function MobileCard({ item, index }: { item: Item; index: number }) {
+  return (
+    <div style={{ flexShrink: 0, width: '100%', scrollSnapAlign: 'center' }}>
+      <div style={{
+        position: 'relative', borderRadius: '20px', overflow: 'hidden',
+        height: '72vw', maxHeight: '420px', minHeight: '260px',
+        border: `1px solid rgba(${item.accentRgb},0.14)`,
+        boxShadow: `0 20px 60px rgba(0,0,0,0.55), 0 0 40px rgba(${item.accentRgb},0.07)`,
+        isolation: 'isolate',
+      }}>
+        {item.mediaType === 'video' ? (
+          <video src={item.image} autoPlay loop muted playsInline disablePictureInPicture
+            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'translateZ(0)' }}
+          />
+        ) : (
+          <img src={item.image} alt={item.alt}
+            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'translateZ(0)' }}
+          />
+        )}
+
+        {/* Bottom gradient */}
+        <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(2,2,8,0.65) 0%, transparent 55%)', pointerEvents:'none' }} />
+        {/* Accent bottom glow */}
+        <div style={{ position:'absolute', bottom:0, left:0, right:0, height:'35%', background:`linear-gradient(to top, rgba(${item.accentRgb},0.09), transparent)`, pointerEvents:'none' }} />
+
+        {/* Corner brackets */}
+        {([
+          { top:12,    left:12,  borderTop:`1px solid rgba(${item.accentRgb},0.45)`,    borderLeft:`1px solid rgba(${item.accentRgb},0.45)`  },
+          { top:12,    right:12, borderTop:`1px solid rgba(${item.accentRgb},0.45)`,    borderRight:`1px solid rgba(${item.accentRgb},0.45)` },
+          { bottom:12, left:12,  borderBottom:`1px solid rgba(${item.accentRgb},0.45)`, borderLeft:`1px solid rgba(${item.accentRgb},0.45)`  },
+          { bottom:12, right:12, borderBottom:`1px solid rgba(${item.accentRgb},0.45)`, borderRight:`1px solid rgba(${item.accentRgb},0.45)` },
+        ] as React.CSSProperties[]).map((s, i) => (
+          <div key={i} style={{ position:'absolute', width:14, height:14, pointerEvents:'none', ...s }} />
+        ))}
+
+        {/* Counter badge */}
+        <div style={{
+          position:'absolute', top:13, right:13,
+          fontSize:8, letterSpacing:'0.18em', textTransform:'uppercase',
+          color:`rgba(${item.accentRgb},0.85)`,
+          background:`rgba(${item.accentRgb},0.09)`,
+          border:`1px solid rgba(${item.accentRgb},0.22)`,
+          padding:'3px 9px', borderRadius:4,
+          backdropFilter:'blur(8px)',
+        }}>
+          {index + 1} / {showcaseItems.length}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ─── Mobile Carousel ──────────────────────────────────────────────────────────
+function MobileCarousel() {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const idx = Math.round(el.scrollLeft / el.clientWidth);
+      setActive(Math.max(0, Math.min(idx, showcaseItems.length - 1)));
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const goTo = (idx: number) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollTo({ left: idx * el.clientWidth, behavior: 'smooth' });
+  };
+
+  return (
+    <div>
+      {/* Scrollable track */}
+      <div
+        ref={trackRef}
+        style={{
+          display: 'flex',
+          overflowX: 'scroll',
+          scrollSnapType: 'x mandatory',
+          WebkitOverflowScrolling: 'touch',
+          msOverflowStyle: 'none',
+          scrollbarWidth: 'none',
+        }}
+        className="mobile-carousel-track"
+      >
+        {showcaseItems.map((item, i) => (
+          <MobileCard key={item.id} item={item} index={i} />
+        ))}
+      </div>
+
+      {/* Dot indicators */}
+      <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:'8px', marginTop:'20px' }}>
+        {showcaseItems.map((item, i) => (
+          <button
+            key={item.id}
+            onClick={() => goTo(i)}
+            aria-label={`Go to slide ${i + 1}`}
+            style={{
+              width: active === i ? '24px' : '7px',
+              height: '7px',
+              borderRadius: '4px',
+              background: active === i ? item.accent : 'rgba(237,233,227,0.18)',
+              border: 'none', padding: 0, cursor: 'pointer',
+              transition: 'width 0.35s cubic-bezier(0.22,1,0.36,1), background 0.35s ease',
+              boxShadow: active === i ? `0 0 10px rgba(${item.accentRgb},0.5)` : 'none',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Swipe hint */}
+      <p style={{
+        textAlign:'center', marginTop:'12px',
+        fontSize:'9px', letterSpacing:'0.22em', textTransform:'uppercase',
+        color:'rgba(237,233,227,0.18)',
+      }}>
+        Swipe to explore
+      </p>
+    </div>
+  );
+}
 
 // ─── ShowcaseSection ──────────────────────────────────────────────────────────
 export default function ShowcaseSection() {
@@ -494,6 +530,7 @@ export default function ShowcaseSection() {
   const hoveredWrapperRef = useRef<HTMLElement | null>(null);
   const pendingIdRef      = useRef<number | null>(null);
   const switchTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null); // NEW: track leave timer separately
 
   const animFrameRef  = useRef<number>(0);
   const currentXRef   = useRef(0);
@@ -508,66 +545,108 @@ export default function ShowcaseSection() {
   const [leftActive,  setLeftActive]  = useState(false);
   const [rightActive, setRightActive] = useState(false);
 
+  // FIX: opacity-only dimming — removed filter:blur/saturate from wrapper elements.
+  // Applying CSS filter to a wrapper that contains <video> forces a new compositing
+  // layer on every frame the filter changes, causing the entire card (including the
+  // video decode surface) to repaint → visible flicker on every hover transition.
   const applyNeighborState = useCallback((
     hoveredWrapper: HTMLElement | null,
     g: typeof import('gsap').gsap,
   ) => {
-    const allWrappers = Array.from(
+    const all = Array.from(
       trackRef.current?.querySelectorAll<HTMLElement>('[data-showcase-wrapper="true"]') ?? []
     );
-    allWrappers.forEach(w => {
+    all.forEach(w => {
       const isHov      = w === hoveredWrapper;
       const isNeighbor = hoveredWrapper !== null && !isHov;
       g.to(w, {
-        opacity: isNeighbor ? 0.36 : 1,
-        filter:  isNeighbor ? 'saturate(0.25) blur(1.5px)' : 'saturate(1) blur(0px)',
-        duration: 0.55,
-        ease: 'power2.out',
-        overwrite: 'auto',
+        opacity: isNeighbor ? 0.38 : 1,
+        duration: 0.55, ease: 'power2.out', overwrite: 'auto',
       });
     });
   }, []);
 
   const handleEnter = useCallback((id: number, wrapperEl: HTMLElement) => {
+    // FIX: pause carousel immediately
+    isPausedRef.current = true;
+
+    // Clear any pending leave timer — we're hovering again
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+
     pendingIdRef.current = id;
     if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
 
-    switchTimerRef.current = setTimeout(() => {
-      const g = gsapRef.current;
-      if (!g) return;
+    // FIX card-to-card flicker: fire hoverOut on prev and hoverIn on next in
+    // the same synchronous call. The old 28 ms setTimeout left both cards in
+    // their resting state for ~2 frames, causing a visible flash.
+    const g = gsapRef.current;
+    if (!g) {
+      // gsap not ready yet — tiny one-frame retry, no visible delay
+      switchTimerRef.current = setTimeout(() => {
+        const g2 = gsapRef.current;
+        if (!g2) return;
+        if (hoveredWrapperRef.current && hoveredWrapperRef.current !== wrapperEl) {
+          const prevOut = (hoveredWrapperRef.current as any).__hoverOut;
+          if (prevOut) prevOut();
+        }
+        hoveredWrapperRef.current = wrapperEl;
+        const hoverIn = (wrapperEl as any).__hoverIn;
+        if (hoverIn) hoverIn();
+        applyNeighborState(wrapperEl, g2);
+      }, 0);
+      return;
+    }
 
-      if (hoveredWrapperRef.current && hoveredWrapperRef.current !== wrapperEl) {
-        const prevOut = (hoveredWrapperRef.current as any).__hoverOut;
-        if (prevOut) prevOut();
-      }
-
-      hoveredWrapperRef.current = wrapperEl;
-      isPausedRef.current = true;
-
-      const hoverIn = (wrapperEl as any).__hoverIn;
-      if (hoverIn) hoverIn();
-
-      applyNeighborState(wrapperEl, g);
-    }, 28);
+    if (hoveredWrapperRef.current && hoveredWrapperRef.current !== wrapperEl) {
+      const prevOut = (hoveredWrapperRef.current as any).__hoverOut;
+      if (prevOut) prevOut();
+    }
+    hoveredWrapperRef.current = wrapperEl;
+    const hoverIn = (wrapperEl as any).__hoverIn;
+    if (hoverIn) hoverIn();
+    applyNeighborState(wrapperEl, g);
   }, [applyNeighborState]);
 
   const handleLeave = useCallback((_wrapperEl: HTMLElement) => {
+    // Clear any pending enter timer
+    if (switchTimerRef.current) {
+      clearTimeout(switchTimerRef.current);
+      switchTimerRef.current = null;
+    }
+    
     pendingIdRef.current = null;
-    if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
-
-    switchTimerRef.current = setTimeout(() => {
+    
+    // FIX #2: Clear existing leave timer to prevent race conditions
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+    }
+    
+    leaveTimerRef.current = setTimeout(() => {
+      // Guard: Only proceed if no new card is pending
       if (pendingIdRef.current !== null) return;
+      
       const g = gsapRef.current;
       if (!g) return;
-
+      
       if (hoveredWrapperRef.current) {
         const hoverOut = (hoveredWrapperRef.current as any).__hoverOut;
         if (hoverOut) hoverOut();
       }
-
       hoveredWrapperRef.current = null;
-      isPausedRef.current = false;
+      
+      // FIX #3: Only unpause carousel if we're truly done with all hover interactions
+      // Small delay to prevent rapid re-entry from unpausing mid-animation
+      setTimeout(() => {
+        if (!hoveredWrapperRef.current && !pendingIdRef.current) {
+          isPausedRef.current = false;
+        }
+      }, 50);
+      
       applyNeighborState(null, g);
+      leaveTimerRef.current = null;
     }, 40);
   }, [applyNeighborState]);
 
@@ -576,8 +655,7 @@ export default function ShowcaseSection() {
     let mounted = true;
     void (async () => {
       const [{ gsap }, { ScrollTrigger }] = await Promise.all([
-        import('gsap'),
-        import('gsap/ScrollTrigger'),
+        import('gsap'), import('gsap/ScrollTrigger'),
       ]);
       if (!mounted || !sectionRef.current) return;
       gsap.registerPlugin(ScrollTrigger);
@@ -587,7 +665,6 @@ export default function ShowcaseSection() {
         trigger: sectionRef.current, start: 'top 88%', once: true,
         onEnter: () => setSectionVisible(true),
       });
-
       if (headerRef.current) {
         const kids = Array.from(headerRef.current.children) as HTMLElement[];
         gsap.fromTo(kids,
@@ -610,21 +687,15 @@ export default function ShowcaseSection() {
 
   useEffect(() => {
     const BASE = 0.42, AMAX = 6, AACC = 0.18, ADEC = 0.88;
-    let last = 0;
-    let inView = true;
-
-    // Pause when section is off-screen (IntersectionObserver)
+    let last = 0, inView = true;
     const observer = new IntersectionObserver(
-      ([entry]) => { inView = entry.isIntersecting; },
-      { threshold: 0 }
+      ([entry]) => { inView = entry.isIntersecting; }, { threshold: 0 }
     );
     if (trackRef.current) observer.observe(trackRef.current);
 
     const loop = (t: number) => {
       animFrameRef.current = requestAnimationFrame(loop);
-      // Skip when tab hidden or section scrolled out of view
       if (document.hidden || !inView) return;
-
       const dt = Math.min(t - last, 50); last = t;
       if (!trackRef.current) return;
       const tw = trackRef.current.scrollWidth / 2;
@@ -635,26 +706,22 @@ export default function ShowcaseSection() {
         arrowSpeedRef.current *= ADEC;
         if (Math.abs(arrowSpeedRef.current) < 0.02) arrowSpeedRef.current = 0;
       }
-
       velocityRef.current = isPausedRef.current
         ? Math.max(velocityRef.current - 0.05, 0)
         : Math.min(velocityRef.current + 0.02, 1);
 
-      targetXRef.current = (targetXRef.current + BASE * (dt / 16) * velocityRef.current + arrowSpeedRef.current * (dt / 16) + tw) % tw;
+      targetXRef.current  = (targetXRef.current + BASE * (dt/16) * velocityRef.current + arrowSpeedRef.current * (dt/16) + tw) % tw;
       currentXRef.current += (targetXRef.current - currentXRef.current) * 0.07;
       if (currentXRef.current < 0) currentXRef.current += tw;
       trackRef.current.style.transform = `translateX(-${currentXRef.current}px)`;
     };
     animFrameRef.current = requestAnimationFrame(loop);
-    return () => {
-      cancelAnimationFrame(animFrameRef.current);
-      observer.disconnect();
-    };
+    return () => { cancelAnimationFrame(animFrameRef.current); observer.disconnect(); };
   }, []);
 
   const startLeft  = useCallback(() => { holdLRef.current = true;  holdRRef.current = false; setLeftActive(true);  setRightActive(false); }, []);
   const startRight = useCallback(() => { holdRRef.current = true;  holdLRef.current = false; setRightActive(true); setLeftActive(false);  }, []);
-  const stopArrows = useCallback(() => { holdLRef.current = false; holdRRef.current = false; setLeftActive(false); setRightActive(false);  }, []);
+  const stopArrows = useCallback(() => { holdLRef.current = false; holdRRef.current = false; setLeftActive(false); setRightActive(false); }, []);
 
   const allItems = [...showcaseItems, ...showcaseItems];
 
@@ -668,18 +735,18 @@ export default function ShowcaseSection() {
         onTouchEnd={stopArrows}
         aria-label={isLeft ? 'Scroll left' : 'Scroll right'}
         style={{
-          position: 'absolute', top: '50%', [isLeft ? 'left' : 'right']: '16px',
-          zIndex: 30, width: '48px', height: '48px', borderRadius: '50%',
-          border: `1px solid rgba(201,169,110,${isActive ? 0.6 : 0.2})`,
+          position:'absolute', top:'50%', [isLeft ? 'left' : 'right']:'16px',
+          zIndex:30, width:'48px', height:'48px', borderRadius:'50%',
+          border:`1px solid rgba(201,169,110,${isActive ? 0.6 : 0.2})`,
           background: isActive ? 'rgba(201,169,110,0.15)' : 'rgba(8,10,22,0.7)',
-          backdropFilter: 'blur(12px)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
-          transform: `translateY(-50%) scale(${isActive ? 0.93 : 1})`,
+          backdropFilter:'blur(12px)', cursor:'pointer',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          transition:'border-color 0.2s, background 0.2s, box-shadow 0.2s',
+          transform:`translateY(-50%) scale(${isActive ? 0.93 : 1})`,
           boxShadow: isActive
             ? '0 0 24px rgba(201,169,110,0.25),inset 0 0 12px rgba(201,169,110,0.08)'
             : '0 4px 20px rgba(0,0,0,0.5)',
-          userSelect: 'none', WebkitUserSelect: 'none',
+          userSelect:'none', WebkitUserSelect:'none',
         }}
       >
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -702,24 +769,24 @@ export default function ShowcaseSection() {
       {/* Background streaks */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[
-          { top: '18%', left: '-8%',  w: '55%', rot: '-7deg', color: '201,169,110', delay: '0s' },
-          { top: '65%', right: '-8%', w: '45%', rot: '5deg',  color: '74,158,255',  delay: '3s' },
-          { top: '42%', left: '20%',  w: '30%', rot: '-3deg', color: '139,92,246',  delay: '6s' },
+          { top:'18%', left:'-8%',  w:'55%', rot:'-7deg', color:'201,169,110', delay:'0s' },
+          { top:'65%', right:'-8%', w:'45%', rot:'5deg',  color:'74,158,255',  delay:'3s' },
+          { top:'42%', left:'20%',  w:'30%', rot:'-3deg', color:'139,92,246',  delay:'6s' },
         ].map((s, i) => (
           <div key={i} style={{
-            position: 'absolute', top: s.top, left: (s as any).left, right: (s as any).right,
-            width: s.w, height: '1px',
-            background: `linear-gradient(90deg, transparent, rgba(${s.color},0.1), transparent)`,
-            transform: `rotate(${s.rot})`,
-            animation: 'streak 10s ease-in-out infinite', animationDelay: s.delay,
+            position:'absolute', top:s.top, left:(s as any).left, right:(s as any).right,
+            width:s.w, height:'1px',
+            background:`linear-gradient(90deg, transparent, rgba(${s.color},0.1), transparent)`,
+            transform:`rotate(${s.rot})`,
+            animation:'streak 10s ease-in-out infinite', animationDelay:s.delay,
           }} />
         ))}
       </div>
 
       {/* Grid overlay */}
       <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: `linear-gradient(rgba(201,169,110,0.012) 1px, transparent 1px),linear-gradient(90deg,rgba(201,169,110,0.012) 1px,transparent 1px)`,
-        backgroundSize: '100px 100px',
+        backgroundImage:`linear-gradient(rgba(201,169,110,0.012) 1px, transparent 1px),linear-gradient(90deg,rgba(201,169,110,0.012) 1px,transparent 1px)`,
+        backgroundSize:'100px 100px',
       }} />
 
       {/* Header */}
@@ -727,44 +794,45 @@ export default function ShowcaseSection() {
         <div className="flex items-end justify-between">
           <div>
             <div className="flex items-center gap-3 mb-5">
-              <div style={{ height: '1px', width: '28px', background: 'rgba(201,169,110,0.5)' }} />
-              <span style={{ fontSize: '9px', letterSpacing: '0.32em', textTransform: 'uppercase', color: 'rgba(201,169,110,0.55)' }}>Selected Work</span>
+              <div style={{ height:'1px', width:'28px', background:'rgba(201,169,110,0.5)' }} />
+              <span style={{ fontSize:'9px', letterSpacing:'0.32em', textTransform:'uppercase', color:'rgba(201,169,110,0.55)' }}>Selected Work</span>
             </div>
-            <h2 style={{ fontSize: 'clamp(1.8rem,5vw,3.5rem)', fontWeight: 900, letterSpacing: '-0.045em', lineHeight: 1, margin: 0 }}>
-              <span style={{ color: 'rgba(237,233,227,0.9)' }}>See What&apos;s </span>
-              <span style={{ background: 'linear-gradient(135deg,#8B6F3E 0%,#F2E4C4 40%,#D4A96A 70%,#C9956E 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>Possible</span>
+            <h2 style={{ fontSize:'clamp(1.8rem,5vw,3.5rem)', fontWeight:900, letterSpacing:'-0.045em', lineHeight:1, margin:0 }}>
+              <span style={{ color:'rgba(237,233,227,0.9)' }}>See What&apos;s </span>
+              <span style={{ background:'linear-gradient(135deg,#8B6F3E 0%,#F2E4C4 40%,#D4A96A 70%,#C9956E 100%)', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent' }}>Possible</span>
             </h2>
           </div>
           <div className="hidden sm:flex flex-col items-end gap-1">
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
-              <span style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.04em', background: 'linear-gradient(135deg,#C9A96E,#f0d49a)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>48+</span>
-              <span style={{ fontSize: '9px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(237,233,227,0.25)' }}>Projects</span>
+            <div style={{ display:'flex', alignItems:'baseline', gap:'0.3rem' }}>
+              <span style={{ fontSize:'2rem', fontWeight:900, letterSpacing:'-0.04em', background:'linear-gradient(135deg,#C9A96E,#f0d49a)', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent' }}>48+</span>
+              <span style={{ fontSize:'9px', letterSpacing:'0.2em', textTransform:'uppercase', color:'rgba(237,233,227,0.25)' }}>Projects</span>
             </div>
-            <p style={{ fontSize: '11px', color: 'rgba(237,233,227,0.22)', letterSpacing: '0.06em', margin: 0 }}>Where beauty meets computation</p>
+            <p style={{ fontSize:'11px', color:'rgba(237,233,227,0.22)', letterSpacing:'0.06em', margin:0 }}>Where beauty meets computation</p>
           </div>
         </div>
       </div>
 
       {/* Catalog label */}
-      <div style={{ textAlign: 'center', marginBottom: '1.5rem', opacity: sectionVisible ? 0.4 : 0, transition: 'opacity 0.6s ease' }}>
-        <span style={{ fontSize: '9px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(237,233,227,0.4)' }}>Catalog</span>
+      <div style={{ textAlign:'center', marginBottom:'1.5rem', opacity: sectionVisible ? 0.4 : 0, transition:'opacity 0.6s ease' }}>
+        <span style={{ fontSize:'9px', letterSpacing:'0.28em', textTransform:'uppercase', color:'rgba(237,233,227,0.4)' }}>Catalog</span>
       </div>
 
-      {/* Carousel */}
-      <div style={{ position: 'relative' }}>
+      {/* ── Desktop carousel ── */}
+      <div className="hidden sm:block" style={{ position:'relative' }}>
         <ArrowBtn dir="left" />
         <ArrowBtn dir="right" />
         <div style={{
-          position: 'relative', width: '100%', overflow: 'hidden',
-          maskImage: 'linear-gradient(90deg,transparent 0%,black 8%,black 92%,transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(90deg,transparent 0%,black 8%,black 92%,transparent 100%)',
-          paddingTop: '48px', paddingBottom: '72px',
+          position:'relative', width:'100%', overflow:'hidden',
+          maskImage:'linear-gradient(90deg,transparent 0%,black 8%,black 92%,transparent 100%)',
+          WebkitMaskImage:'linear-gradient(90deg,transparent 0%,black 8%,black 92%,transparent 100%)',
+          paddingTop:'80px', paddingBottom:'96px',
         }}>
-          <div ref={trackRef} style={{ display: 'flex', gap: '14px', paddingLeft: '24px', willChange: 'transform', alignItems: 'flex-end' }}>
+          <div ref={trackRef} style={{ display:'flex', gap:'14px', paddingLeft:'24px', willChange:'transform', alignItems:'center' }}>
             {allItems.map((item, i) => (
               <ShowcaseCard
                 key={`${item.id}-${i}`}
                 item={item}
+                index={i}
                 gsapRef={gsapRef}
                 onEnter={handleEnter}
                 onLeave={handleLeave}
@@ -774,25 +842,30 @@ export default function ShowcaseSection() {
         </div>
       </div>
 
+      {/* ── Mobile carousel ── */}
+      <div className="sm:hidden px-5">
+        <MobileCarousel />
+      </div>
+
       {/* CTA */}
-      <div ref={btnRef} style={{ display: 'flex', justifyContent: 'center', marginTop: '16px', position: 'relative', zIndex: 10 }}>
+      <div ref={btnRef} style={{ display:'flex', justifyContent:'center', marginTop:'28px', position:'relative', zIndex:10 }}>
         <a href="https://app.motiongraceco.com/gallery" target="_blank" rel="noopener noreferrer" style={{
-          display: 'inline-flex', alignItems: 'center', gap: '12px',
-          padding: '14px 32px', borderRadius: '999px',
-          border: '1px solid rgba(201,169,110,0.28)',
-          background: 'rgba(201,169,110,0.06)',
-          backdropFilter: 'blur(12px)',
-          color: 'rgba(237,233,227,0.75)',
-          fontSize: '10px', fontWeight: 700, letterSpacing: '0.22em',
-          textTransform: 'uppercase', textDecoration: 'none',
-          transition: 'border-color 0.3s,background 0.3s,color 0.3s,box-shadow 0.3s',
-          cursor: 'pointer',
+          display:'inline-flex', alignItems:'center', gap:'12px',
+          padding:'14px 32px', borderRadius:'999px',
+          border:'1px solid rgba(201,169,110,0.28)',
+          background:'rgba(201,169,110,0.06)',
+          backdropFilter:'blur(12px)',
+          color:'rgba(237,233,227,0.75)',
+          fontSize:'10px', fontWeight:700, letterSpacing:'0.22em',
+          textTransform:'uppercase', textDecoration:'none',
+          transition:'border-color 0.3s,background 0.3s,color 0.3s,box-shadow 0.3s',
+          cursor:'pointer',
         }}
           onMouseEnter={e => { const el = e.currentTarget; el.style.borderColor='rgba(201,169,110,0.65)'; el.style.background='rgba(201,169,110,0.13)'; el.style.color='#C9A96E'; el.style.boxShadow='0 0 32px rgba(201,169,110,0.15)'; }}
           onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor='rgba(201,169,110,0.28)'; el.style.background='rgba(201,169,110,0.06)'; el.style.color='rgba(237,233,227,0.75)'; el.style.boxShadow='none'; }}
         >
           <span>View more works</span>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ opacity: 0.7 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ opacity:0.7 }}>
             <path d="M2.5 7H11.5M8 3.5L11.5 7L8 10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </a>
@@ -801,6 +874,12 @@ export default function ShowcaseSection() {
       <style>{`
         @keyframes streak    { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
         @keyframes dot-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.7); } }
+        @keyframes card-float {
+          0%,100% { transform: translateZ(0) translateY(0px); }
+          50%     { transform: translateZ(0) translateY(calc(-1 * var(--float-y))); }
+        }
+        [data-showcase-wrapper="true"]:hover { animation-play-state: paused; }
+        .mobile-carousel-track::-webkit-scrollbar { display: none; }
       `}</style>
     </section>
   );

@@ -483,7 +483,7 @@ export default function Header() {
                 </button>
               ))}
               <Link
-                href="/pricing"
+                href="https://www.motiongraceco.com/pricing"
                 className="px-4 py-1.5 text-[10px] font-medium tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-all duration-500 rounded-full hover:bg-white/4"
               >
                 Pricing
@@ -611,8 +611,16 @@ export default function Header() {
             transitionDelay: `${60 + navLinks.length * 60}ms`,
           }} />
 
-          {/* Pill buttons — Contact Us + AI Strategist only */}
+          {/* Pill buttons — Pricing + Contact Us + AI Strategist only */}
           <div className="mobile-nav-item flex flex-col items-center gap-3" style={{ transitionDelay: `${80 + navLinks.length * 60}ms` }}>
+            {/* Pricing */}
+            <a
+              href="https://www.motiongraceco.com/pricing"
+              className="mobile-glass-pill"
+              onClick={() => setMenuOpen(false)}
+            >
+              Pricing
+            </a>
             {/* Contact Us — glass pill */}
             <a
               href="mailto:hello@motiongrace.com"

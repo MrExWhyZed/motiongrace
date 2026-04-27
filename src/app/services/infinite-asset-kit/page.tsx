@@ -11,6 +11,12 @@ export default function InfiniteAssetKit() {
   const canvaContainerRef = useRef<HTMLDivElement>(null);
   const [canvaPlaying, setCanvaPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const enterFullscreen = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -214,6 +220,13 @@ export default function InfiniteAssetKit() {
     <main className="relative bg-background [overflow-x:clip]">
       <ScrollAnimationInit />
       <ServicePageNav accentColor="#4A9EFF" accentRgb="74,158,255" />
+      <div
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(18px)',
+          transition: 'opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
 
       {/* ── HERO ── */}
       <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -687,6 +700,7 @@ export default function InfiniteAssetKit() {
       </section>
 
       <Footer />
+      </div>
     </main>
   );
 }

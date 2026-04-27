@@ -104,7 +104,7 @@ function WorkflowCard({ step, index }: { step: (typeof steps)[0]; index: number 
   return (
     <div
       data-hiw-card
-      style={{ perspective: '1400px', width: '100%', height: '100%' }}
+      style={{ perspective: '1400px', width: '100%', height: '100%', opacity: 0 }}
     >
       <div
         ref={ref}
@@ -279,10 +279,6 @@ export default function HowItWorksSection() {
       gsapCtx.current = gsap.context(() => {
         const cards = gridRef.current?.querySelectorAll('[data-hiw-card]');
         if (!cards || cards.length === 0) return;
-
-        // Ensure cards are fully visible before the ScrollTrigger fires
-        // so there's no flash of invisible content on mount.
-        gsap.set(cards, { opacity: 1, y: 0, scale: 1 });
 
         gsap.fromTo(
           cards,

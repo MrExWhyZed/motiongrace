@@ -17,8 +17,9 @@ export default function ServicePageNav({
 }: ServicePageNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [scrolled, setScrolled] = useState(false);
 
-  // Single observer — hide everything when hero leaves viewport
+  // Observe hero section to know when we've scrolled past it
   useEffect(() => {
     const heroEl = document.getElementById('hero');
     if (!heroEl) return;
@@ -28,6 +29,29 @@ export default function ServicePageNav({
     );
     observer.observe(heroEl);
     return () => observer.disconnect();
+  }, []);
+
+  // Track scroll for compact nav styling
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Smooth scroll to hash on entry from another page
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    const tryScroll = (attempts = 0) => {
+      const el = document.querySelector(hash);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      } else if (attempts < 10) {
+        setTimeout(() => tryScroll(attempts + 1), 120);
+      }
+    };
+    tryScroll();
   }, []);
 
   // Close menu on route or scroll
@@ -151,14 +175,18 @@ export default function ServicePageNav({
           pointer-events: auto;
         }
 
-        /* ── Header fade ── */
+        /* ── Header transition ── */
         .spn-header-full {
-          transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1);
+          transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1),
+                      background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, padding 0.4s ease;
         }
-        .spn-header-full.spn-header-hidden {
-          opacity: 0;
-          pointer-events: none;
-          transform: translateY(-10px);
+        /* Scrolled past hero: show frosted glass bar */
+        .spn-header-full.spn-scrolled {
+          background: rgba(4,4,10,0.85) !important;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+          backdrop-filter: blur(28px) saturate(1.5);
+          -webkit-backdrop-filter: blur(28px) saturate(1.5);
         }
 
         @media (min-width: 768px) {
@@ -176,7 +204,7 @@ export default function ServicePageNav({
       `}</style>
 
       {/* ── Fixed top bar — transparent wrapper, pill floats inside ── */}
-      <header className={`spn-header-full ${!heroVisible ? 'spn-header-hidden' : ''}`} style={{
+      <header className={`spn-header-full ${scrolled ? 'spn-scrolled' : ''}`} style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         background: 'transparent',
       }}>

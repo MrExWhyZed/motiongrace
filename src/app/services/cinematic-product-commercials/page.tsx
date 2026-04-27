@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Footer from '@/components/Footer';
 import ScrollAnimationInit from '@/app/components/ScrollAnimationInit';
 import ServicePageNav from '@/app/components/ServicePageNav';
@@ -108,6 +108,13 @@ function ShotCarousel() {
 export default function CinematicProductCommercials() {
   const [activeSpec, setActiveSpec] = useState<number | null>(null);
   const [activeGif, setActiveGif] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Tiny delay so the browser has painted the initial frame before animating in
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const brandGifs = [
     'https://res.cloudinary.com/ddgyx80f6/image/upload/v1777300309/001.1_gonsxq.gif',
@@ -175,6 +182,13 @@ export default function CinematicProductCommercials() {
     <main className="relative bg-background [overflow-x:clip]">
       <ScrollAnimationInit />
       <ServicePageNav accentColor="#C9A96E" accentRgb="201,169,110" />
+      <div
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(18px)',
+          transition: 'opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
 
       {/* ── HERO ── */}
       <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -681,6 +695,7 @@ export default function CinematicProductCommercials() {
       </section>
 
       <Footer />
+      </div>
     </main>
   );
 }
