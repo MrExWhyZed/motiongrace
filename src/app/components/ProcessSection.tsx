@@ -70,8 +70,10 @@ function getDeviceTier(): Tier {
 // ── LERP + scrub throttle per tier ───────────────────────────────────────────
 const TIER_CONFIG: Record<Tier, { lerp: number; scrubMs: number; preload: string }> = {
   high:   { lerp: 0.15, scrubMs: 14,  preload: 'auto'     },
-  mid:    { lerp: 0.10, scrubMs: 24,  preload: 'metadata' },
-  low:    { lerp: 0.08, scrubMs: 40,  preload: 'metadata' },
+  // mid/low: LOWER lerp = slower chase = fewer decoder seeks per second = less lag.
+  // Raise scrubMs to hard-throttle how often we poke currentTime.
+  mid:    { lerp: 0.06, scrubMs: 50,  preload: 'metadata' },
+  low:    { lerp: 0.04, scrubMs: 80,  preload: 'metadata' },
   mobile: { lerp: 0.10, scrubMs: 40,  preload: 'none'     },
 };
 
@@ -96,15 +98,23 @@ export default function ProcessSection() {
   const [stepProgress,   setStepProgress]   = useState(0);
   const [videoReady,     setVideoReady]     = useState(false);
   const [videoSrc,       setVideoSrc]       = useState(VIDEO_URL);
-  const [sectionVisible, setSectionVisible] = useState(false);
+  const [sectionVisible, setSectionVisible] = useState(() => {
+    // On mobile, ScrollTrigger is never initialised, so default to visible.
+    // On desktop, start hidden and let the ScrollTrigger fade it in.
+    if (typeof window === 'undefined') return false;
+    return getDeviceTier() === 'mobile';
+  });
 
   /* ─── RAF scrub loop ───────────────────────────────────────────────────────
      Decoupled from scroll. Lerps currentTime → targetTime.
      Throttle interval & lerp strength vary by device tier.
+     LOW tier: skip continuous scrub entirely; snap only when step changes
+     to avoid overwhelming the decoder with seeks.
   ─────────────────────────────────────────────────────────────────────────── */
   useEffect(() => {
     const tier = getDeviceTier();
     tierRef.current = tier;
+    if (tier === 'mobile' || tier === 'low') return; // low uses step-snap instead
     const { lerp, scrubMs } = TIER_CONFIG[tier];
 
     const tick = () => {
@@ -191,7 +201,19 @@ export default function ProcessSection() {
 
       const vid = videoRef.current;
       if (vid && vid.duration && isFinite(vid.duration)) {
-        targetTimeRef.current = clamped * vid.duration;
+        const target = clamped * vid.duration;
+        targetTimeRef.current = target;
+
+        // LOW tier: no continuous RAF scrub — snap to the midpoint of each step
+        // only when the active step changes. One seek per step transition vs
+        // hundreds of seeks while scrolling through a step.
+        if (tierRef.current === 'low' && videoReadyRef.current) {
+          const snapTime = (steps[step].videoStart + steps[step].videoEnd) / 2 * vid.duration;
+          if (Math.abs(vid.currentTime - snapTime) > 0.25) {
+            vid.currentTime = snapTime;
+            currentTimeRef.current = snapTime;
+          }
+        }
       }
 
       setScrollProgress(clamped);
@@ -244,16 +266,19 @@ export default function ProcessSection() {
               start: 'bottom 110%',
               end: 'bottom -8%',
               scrub: 1.4,
+              onEnter: () => { stickyEl.style.willChange = 'opacity, transform'; },
+              onLeaveBack: () => {
+                stickyEl.style.willChange = 'auto';
+                stickyEl.style.opacity   = '1';
+                stickyEl.style.transform = 'none';
+              },
               onUpdate: (self) => {
                 const t    = self.progress;
                 const ease = 1 - Math.pow(1 - t, 3);
                 stickyEl.style.opacity   = String(Math.max(0, 1 - ease * 1.15));
                 stickyEl.style.transform = `translateY(${ease * -40}px) scale(${1 - ease * 0.018})`;
               },
-              onLeaveBack: () => {
-                stickyEl.style.opacity   = '1';
-                stickyEl.style.transform = 'none';
-              },
+              onLeave: () => { stickyEl.style.willChange = 'auto'; },
             })
           );
         }
@@ -367,7 +392,8 @@ export default function ProcessSection() {
           style={{
             height: '100vh',
             background: 'linear-gradient(180deg, #020208 0%, #04040c 50%, #030309 100%)',
-            willChange: 'opacity, transform',
+            // willChange promoted only when the exit animation is actually running
+            // (set imperatively in the ScrollTrigger onUpdate below).
             transformOrigin: '50% 40%',
             contain: 'layout style',   // isolates layout/style recalcs from rest of page
           }}
