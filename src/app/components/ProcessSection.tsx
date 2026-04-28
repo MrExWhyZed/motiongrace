@@ -663,6 +663,7 @@ function MobileStepCard({ step, index }: { step: StepData; index: number }) {
         border: `1px solid ${step.accent}14`, padding: '28px 22px',
         opacity: 0, transform: 'translateY(24px)',
         contain: 'content',
+        //changed
         // CSS animation fires once IntersectionObserver sets vis=true
         animation: vis ? `proc-card-in 0.7s cubic-bezier(0.16,1,0.3,1) ${index * 80}ms forwards` : 'none',
       }}
