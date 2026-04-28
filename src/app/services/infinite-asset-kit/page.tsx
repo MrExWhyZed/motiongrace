@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import LazySection from '@/app/components/LazySection';
 import Footer from '@/components/Footer';
 import ScrollAnimationInit from '@/app/components/ScrollAnimationInit';
 import ServicePageNav from '@/app/components/ServicePageNav';
@@ -55,32 +56,58 @@ export default function InfiniteAssetKit() {
     const v = accelVideoRef.current;
     if (!v) return;
 
-    let preloader: HTMLVideoElement | null = null;
+    // Mobile-optimised: pre-fetch both videos as blob URLs to eliminate
+    // the gap/flash between clips caused by network re-fetching on src swap.
+    const blobUrls: string[] = [];
+    let cancelled = false;
 
-    const preloadNext = () => {
-      const nextIndex = (accelIndex.current + 1) % accelVideos.length;
-      preloader = document.createElement('video');
-      preloader.src = accelVideos[nextIndex];
-      preloader.muted = true;
-      preloader.preload = 'auto';
-      preloader.load();
+    const fetchBlob = async (url: string) => {
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      } catch {
+        return url; // fallback to direct URL
+      }
     };
 
-    const playNext = () => {
-      accelIndex.current = (accelIndex.current + 1) % accelVideos.length;
-      v.src = accelVideos[accelIndex.current];
-      v.play().catch(() => {});
-      preloader = null;
-      preloadNext();
+    const init = async () => {
+      // Fetch both videos concurrently
+      const [blob0, blob1] = await Promise.all(accelVideos.map(fetchBlob));
+      if (cancelled) {
+        URL.revokeObjectURL(blob0);
+        URL.revokeObjectURL(blob1);
+        return;
+      }
+      blobUrls.push(blob0, blob1);
+
+      v.src = blobUrls[0];
+      v.load();
+      // Use canplaythrough so mobile doesn't start before buffered
+      const onReady = () => {
+        v.play().catch(() => {});
+        v.removeEventListener('canplaythrough', onReady);
+      };
+      v.addEventListener('canplaythrough', onReady);
+
+      const playNext = () => {
+        accelIndex.current = (accelIndex.current + 1) % blobUrls.length;
+        v.src = blobUrls[accelIndex.current];
+        v.load();
+        v.play().catch(() => {});
+      };
+      v.addEventListener('ended', playNext);
+
+      return () => { v.removeEventListener('ended', playNext); };
     };
 
-    v.src = accelVideos[0];
-    v.play().catch(() => {});
-    preloadNext();
-    v.addEventListener('ended', playNext);
+    let innerCleanup: (() => void) | undefined;
+    init().then(fn => { innerCleanup = fn; });
+
     return () => {
-      v.removeEventListener('ended', playNext);
-      preloader = null;
+      cancelled = true;
+      innerCleanup?.();
+      blobUrls.forEach(u => URL.revokeObjectURL(u));
     };
   }, []);
 
@@ -329,6 +356,7 @@ export default function InfiniteAssetKit() {
       </section>
 
       {/* ── SOCIAL PREVIEW ── */}
+      <LazySection minHeight="600px" rootMargin="400px">
       <section data-gsap-section="social-preview" className="py-32 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-20" data-reveal="up">
@@ -403,6 +431,7 @@ export default function InfiniteAssetKit() {
           </div>
         </div>
       </section>
+      </LazySection>
 
       {/* ── DRAG DROP DONE ── */}
       <section data-gsap-section="drag-drop" className="py-32 px-6">
@@ -595,7 +624,13 @@ export default function InfiniteAssetKit() {
                 ref={accelVideoRef}
                 muted
                 playsInline
-                style={{ width: '100%', display: 'block' }}
+                style={{
+                  width: '100%',
+                  display: 'block',
+                  background: 'linear-gradient(145deg, rgba(74,158,255,0.04) 0%, rgba(10,10,18,0.97) 100%)',
+                  // Prevents white flash between clips on mobile
+                  minHeight: 120,
+                }}
               />
             </div>
           </div>
@@ -603,6 +638,7 @@ export default function InfiniteAssetKit() {
       </section>
 
       {/* ── WHAT'S INSIDE ── */}
+      <LazySection minHeight="500px" rootMargin="300px">
       <section data-gsap-section="kit-contents" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="section-divider mb-24" />
@@ -628,8 +664,10 @@ export default function InfiniteAssetKit() {
           </div>
         </div>
       </section>
+      </LazySection>
 
       {/* ── TECHNICAL SPECS ── */}
+      <LazySection minHeight="400px" rootMargin="300px">
       <section data-gsap-section="specs" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="section-divider mb-24" />
@@ -663,6 +701,7 @@ export default function InfiniteAssetKit() {
           </div>
         </div>
       </section>
+      </LazySection>
 
       {/* ── CTA ── */}
       <section id="cta" data-gsap-section="cta" className="py-32 px-6">

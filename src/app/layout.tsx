@@ -4,7 +4,6 @@ import { Inter } from 'next/font/google';
 import '../styles/tailwind.css';
 import HomeRouteTransition from '@/app/components/HomeRouteTransition';
 import SmoothScroll from '@/app/components/SmoothScroll';
-import PremiumCursor from '@/app/components/PremiumCursor';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -17,6 +16,10 @@ const inter = Inter({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+  themeColor: '#04040A',
 };
 
 export const metadata: Metadata = {
@@ -41,15 +44,8 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} dark`}>
       <body className={inter.className}>
         <SmoothScroll />
-        <PremiumCursor />
         {children}
         <HomeRouteTransition />
-        <script
-          type="module"
-          async
-          src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fmotiongrac8848back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.18"
-        />
-        <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" />
       </body>
     </html>
   );

@@ -231,41 +231,26 @@ const PricingCard = React.memo(function PricingCard({
           {plan.turnaround && (
             <div style={{ fontSize: '9px', color: 'rgba(237,233,227,0.28)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: '14px' }}>{plan.turnaround}</div>
           )}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Link href="/add-project" style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: '12px 20px', borderRadius: '999px', background: plan.accent,
-              color: '#04040a', fontSize: '9px', letterSpacing: '0.22em',
-              textTransform: 'uppercase', fontWeight: 900, textDecoration: 'none',
-              flex: 1, boxShadow: `0 8px 28px ${plan.accent}38`,
-              transition: 'transform 0.2s, box-shadow 0.2s',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)';
-              (e.currentTarget as HTMLElement).style.boxShadow = `0 12px 36px ${plan.accent}55`;
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-              (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 28px ${plan.accent}38`;
-            }}
-            >
-              Get started
-            </Link>
+          <div style={{ display: 'flex' }}>
             <Link href="https://www.motiongraceco.com/pricing" style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: '12px 20px', borderRadius: '999px',
-              border: `1px solid ${plan.accent}25`, background: 'rgba(255,255,255,0.03)',
-              color: 'rgba(237,233,227,0.55)', fontSize: '9px',
-              letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700,
-              textDecoration: 'none', transition: 'border-color 0.2s, color 0.2s',
+              padding: '13px 20px', borderRadius: '999px',
+              border: `1px solid ${plan.accent}40`,
+              background: `${plan.accent}10`,
+              color: 'rgba(237,233,227,0.80)', fontSize: '9px',
+              letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 800,
+              textDecoration: 'none', transition: 'border-color 0.2s, color 0.2s, background 0.2s',
+              flex: 1,
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = `${plan.accent}55`;
-              (e.currentTarget as HTMLElement).style.color = 'rgba(237,233,227,0.85)';
+              (e.currentTarget as HTMLElement).style.borderColor = `${plan.accent}70`;
+              (e.currentTarget as HTMLElement).style.color = '#F7F1E2';
+              (e.currentTarget as HTMLElement).style.background = `${plan.accent}1e`;
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = `${plan.accent}25`;
-              (e.currentTarget as HTMLElement).style.color = 'rgba(237,233,227,0.55)';
+              (e.currentTarget as HTMLElement).style.borderColor = `${plan.accent}40`;
+              (e.currentTarget as HTMLElement).style.color = 'rgba(237,233,227,0.80)';
+              (e.currentTarget as HTMLElement).style.background = `${plan.accent}10`;
             }}
             >
               Details

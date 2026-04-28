@@ -48,18 +48,22 @@
     border-color: var(--border);
   }
 
+  html {
+    scroll-behavior: auto;
+    /* Hint browser to use GPU layer for the whole scroll container */
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* ✅ FIX: overflow-x REMOVED from body — it breaks position:sticky in all browsers.
-       Use .layout-root on your top-level wrapper instead (see below). */
-  }
-
-  html {
-    scroll-behavior: auto;
+    /* Prevent lateral scroll bleed */
+    touch-action: pan-y;
+    /* Contain overscroll on iOS */
+    overscroll-behavior-y: contain;
   }
 
   h1, h2, h3, h4, h5, h6, p {
@@ -453,4 +457,71 @@ html.lenis body {
     backdrop-filter: none !important;
     background: rgba(10, 10, 18, 0.92) !important;
   }
+}
+
+/* ─── Mobile & Touch Performance Optimisations ─────────────────────────────
+ * Applied specifically to touch/coarse-pointer devices to reduce compositor
+ * work and improve scroll frame rate on mid-range phones and tablets.
+ */
+
+/* Native momentum scrolling for iOS Safari */
+@supports (-webkit-overflow-scrolling: touch) {
+  html, body {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Vertical-only touch action on body prevents lateral drift
+   while allowing normal vertical scroll momentum */
+body {
+  touch-action: pan-y;
+}
+
+@media (hover: none), (pointer: coarse) {
+  /* Disable expensive backdrop-blur on .glass-dark utility class only.
+     DO NOT override arbitrary [style*="backdrop-filter"] — that breaks
+     header, modals, and dropdowns which need the blur for legibility. */
+  .glass-dark {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: rgba(10, 10, 18, 0.92) !important;
+  }
+
+  /* Disable infinite ambient CSS animations on touch devices */
+  .animate-float,
+  .animate-float-reverse,
+  .animate-breathe,
+  .animate-rotate-slow {
+    animation: none !important;
+  }
+
+  /* Contain overscroll to prevent pull-to-refresh jank */
+  main {
+    overscroll-behavior-y: contain;
+  }
+
+  /* Ensure video elements don't trigger layout on mobile */
+  video {
+    contain: layout style;
+  }
+
+  /* Reduce large box-shadows that hit CPU on Android — only the heaviest */
+  .glow-gold,
+  .glow-gold-soft,
+  .glow-blue {
+    box-shadow: none !important;
+  }
+}
+
+/* Mid-range desktop: reduce glow animations that run on CSS (not GSAP) */
+@media (min-width: 1025px) and (max-resolution: 1.5dppx) {
+  /* pulse-glow animations are expensive on integrated graphics */
+  [style*="animation: pulse-glow"] {
+    animation: none !important;
+  }
+}
+
+/* Iframe containment — prevents iframe reflows from affecting page layout */
+iframe {
+  contain: strict;
 }

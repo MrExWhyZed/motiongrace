@@ -1,47 +1,68 @@
 /**
- * deviceUtils.ts — shared mobile/tablet + performance-tier detection
+ * deviceUtils.ts — shared device / performance-tier detection
  *
- * Strategy: use BOTH pointer capability AND screen width.
- * - `(hover: none)` / `(pointer: coarse)` catches phones
- * - `max-width: 1024px` catches tablets (iPad, Android tablets) that report
- *   fine/hover because of stylus support but still can't run desktop animations
- *   smoothly and have no real mouse.
- * - The OR means either condition is enough to opt into the lite path.
+ * Tiers
+ * ──────
+ * mobile   → hover:none OR pointer:coarse (phones, most tablets)
+ * low-end  → quad-core or ≤4 GB RAM desktop/laptop
+ * mid-end  → ≤6 cores or ≤8 GB RAM (the main new tier — covers most mid-range laptops)
+ * high-end → everything else
  *
- * Low-end desktop detection:
- * - navigator.hardwareConcurrency ≤ 4 (quad-core or less)
- * - navigator.deviceMemory ≤ 4 (4 GB RAM or less, Chromium-only)
- * - prefers-reduced-motion media query respected everywhere
+ * Strategy: coarse + pointer catches touch devices; hardwareConcurrency /
+ * deviceMemory catches underpowered desktops; prefers-reduced-motion is
+ * always respected.
  */
 
-export function isReducedDevice(): boolean {
-  if (typeof window === 'undefined') return false;
-  return (
-    window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches
-  );
-}
+export type DeviceTier = 'mobile' | 'low' | 'mid' | 'high';
 
-/**
- * Returns true on low-end desktops/laptops that are NOT mobile/tablet
- * but still lack the GPU/CPU headroom for full-quality effects.
- * Used to selectively dial back expensive WebGL, blur, and canvas work.
- */
-export function isLowEndDesktop(): boolean {
-  if (typeof window === 'undefined') return false;
-  if (isReducedDevice()) return false; // mobile path handles those separately
+let _tier: DeviceTier | null = null;
+
+export function getDeviceTier(): DeviceTier {
+  if (_tier) return _tier;
+  if (typeof window === 'undefined') return 'high';
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    _tier = 'low';
+    return _tier;
+  }
+
+  const isMobile = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+  if (isMobile) { _tier = 'mobile'; return _tier; }
 
   const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
   const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
 
-  return cores <= 4 || memory <= 4;
+  if (cores <= 4 || memory <= 4) { _tier = 'low';  return _tier; }
+  if (cores <= 6 || memory <= 8) { _tier = 'mid';  return _tier; }
+  _tier = 'high';
+  return _tier;
+}
+
+/** True for phones and tablets */
+export function isReducedDevice(): boolean {
+  return getDeviceTier() === 'mobile';
+}
+
+/** True for low-end desktops/laptops (not mobile) */
+export function isLowEndDesktop(): boolean {
+  return getDeviceTier() === 'low';
 }
 
 /**
- * Combined check: should we use the "lite" animation path?
- * True for mobile, tablet, reduced-motion, OR low-end desktops.
+ * Should we use the lite animation path?
+ * True for: mobile, low-end, and mid-range desktops (the main change vs old code).
+ * High-end gets full effects.
  */
 export function useLiteAnimations(): boolean {
-  if (typeof window === 'undefined') return true;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
-  return isReducedDevice() || isLowEndDesktop();
+  const tier = getDeviceTier();
+  return tier === 'mobile' || tier === 'low' || tier === 'mid';
+}
+
+/**
+ * Should we skip expensive effects entirely?
+ * Stricter than useLiteAnimations — mobile + low only.
+ */
+export function useMinimalAnimations(): boolean {
+  const tier = getDeviceTier();
+  return tier === 'mobile' || tier === 'low';
 }

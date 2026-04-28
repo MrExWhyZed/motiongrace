@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import AppImage from '@/components/ui/AppImage';
 import Link from 'next/link';
 
 export default function CTASection() {
@@ -95,12 +94,6 @@ export default function CTASection() {
 
       {/* Background */}
       <div ref={bgRef} className="absolute inset-0 will-change-transform" style={{ top: '-10%', height: '120%' }}>
-        <AppImage
-          src="https://img.rocket.new/generatedImages/rocket_gen_img_141bf2330-1772144151607.png"
-          alt="Cinematic product campaign background, dark atmospheric perfume photography, deep shadows, minimal light"
-          fill
-          className="object-cover object-center opacity-15"
-          sizes="100vw" />
         {/* Layered overlays for depth */}
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background/40 to-background" />
         <div
@@ -154,8 +147,8 @@ export default function CTASection() {
           <Link
             href="/add-project"
             data-gsap-button="primary"
-            data-cursor="button"
-            data-cursor-label="Start"
+           
+           
             className="group relative px-10 py-4 rounded-full text-xs font-semibold uppercase tracking-[0.18em] overflow-hidden transition-all duration-300"
             style={{
               background: 'rgba(237, 233, 227, 0.06)',
@@ -181,8 +174,8 @@ export default function CTASection() {
 
           <button
             data-gsap-button="secondary"
-            data-cursor="button"
-            data-cursor-label="Watch"
+           
+           
             onClick={() => {
               document.querySelector('#showreel')?.scrollIntoView({ behavior: 'smooth' });
             }}

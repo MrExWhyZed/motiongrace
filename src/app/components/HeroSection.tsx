@@ -245,8 +245,39 @@ export default function HeroSection() {
     if (!heroVisible || !heroRef.current) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    // ── Snapshot all refs NOW, before any await. ──────────────────────────
+    // After the async import resolves, React may have re-rendered and any
+    // ref.current could be null. Reading them here guarantees valid (or
+    // intentionally null) values that we can guard against safely.
+    const heroHeadlineEl    = heroHeadlineRef.current;
+    const heroSublineEl     = heroSublineRef.current;
+    const heroDotsEl        = heroDotsRef.current;
+    const heroActionsEl     = heroActionsRef.current;
+    const heroStoryEl       = heroStoryRef.current;
+    const heroLeftWidgetEl  = heroLeftWidgetRef.current;
+    const heroRightWidgetEl = heroRightWidgetRef.current;
+    const heroAuraEl        = heroAuraRef.current;
+    const heroParticlesEl   = heroParticlesRef.current;
+    const heroRingsEl       = heroRingsRef.current;
+    const heroScrollCueEl   = heroScrollCueRef.current;
+    const bgEl              = bgRef.current;
+    const contentEl         = contentRef.current;
+    const veilEl            = veilRef.current;
+
     let mounted = true;
     let cleanup = () => {};
+
+    // Helper: returns a Promise that resolves once SmoothScroll has finished
+    // its two-pass refresh (lenisReady event). If Lenis already fired before
+    // this effect ran (SPA nav / fast device), resolves immediately.
+    const waitForLenis = (): Promise<void> =>
+      new Promise(resolve => {
+        if ((window as any).__lenisReady) { resolve(); return; }
+        window.addEventListener('lenisReady', () => resolve(), { once: true });
+        // Safety fallback: if lenisReady never fires (e.g. reduced-motion path
+        // on desktop), unblock after 800 ms so animations still run.
+        setTimeout(resolve, 800);
+      });
 
     void (async () => {
       const [{ gsap }, { ScrollTrigger }] = await Promise.all([
@@ -260,142 +291,153 @@ export default function HeroSection() {
 
       const hero = heroRef.current;
       const introTargets = [
-        heroHeadlineRef.current,
-        heroSublineRef.current,
-        heroDotsRef.current,
-        heroActionsRef.current,
-        heroStoryRef.current,
-        heroLeftWidgetRef.current,
-        heroRightWidgetRef.current,
-      ].filter(Boolean);
+        heroHeadlineEl,
+        heroSublineEl,
+        heroDotsEl,
+        heroActionsEl,
+        heroStoryEl,
+        heroLeftWidgetEl,
+        heroRightWidgetEl,
+      ].filter(Boolean) as HTMLElement[];
 
       // Hide children immediately (before paint) so there's no flash
       // between heroVisible=true rendering and GSAP taking over
-      if (introTargets.length) {
-        (introTargets as HTMLElement[]).forEach(el => {
-          el.style.opacity = '0';
-          el.style.visibility = 'hidden';
-        });
-      }
+      introTargets.forEach(el => {
+        el.style.opacity = '0';
+        el.style.visibility = 'hidden';
+      });
 
+      // Detect tier synchronously inside animation block (isMobile state may lag)
+      const _isMobile = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
+      const _cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+      const _memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+      const _isLowEnd = !_isMobile && (_cores <= 4 || _memory <= 4);
+      // Skip expensive blur filters on mobile/tablet and low-end desktops — causes
+      // compositor layer promotion on every frame the filter changes → heavy GPU load
+      const useHeroBlur = !_isMobile && !_isLowEnd;
+
+      // Run intro tweens immediately — these don't depend on scroll measurements.
+      // ScrollTrigger-dependent tweens run after lenisReady so positions are correct.
       const ctx = gsap.context(() => {
         gsap.set(introTargets, {
           autoAlpha: 0,
           y: 28,
-          filter: 'blur(10px)',
+          ...(useHeroBlur ? { filter: 'blur(10px)' } : {}),
         });
 
-        gsap.timeline({ defaults: { ease: 'power3.out' } })
-          .to(heroHeadlineRef.current, {
-            autoAlpha: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            duration: 0.95,
-          })
-          .to(heroSublineRef.current, {
-            autoAlpha: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            duration: 0.72,
-          }, 0.18)
-          .to(heroDotsRef.current, {
-            autoAlpha: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            duration: 0.62,
-          }, 0.34)
-          .to(heroActionsRef.current, {
-            autoAlpha: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            duration: 0.7,
-          }, 0.46)
-          .to(heroStoryRef.current, {
-            autoAlpha: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            duration: 0.7,
-          }, 0.58)
-          .to([heroLeftWidgetRef.current, heroRightWidgetRef.current], {
-            autoAlpha: 1,
-            y: 0,
-            filter: 'blur(0px)',
-            duration: 0.9,
-            stagger: 0.08,
-          }, 0.22);
+        // ── Intro timeline — each target individually guarded against null ──
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-        if (heroAuraRef.current) {
-          gsap.to(heroAuraRef.current, {
-            scale: 1.08,
-            autoAlpha: 0.84,
-            duration: 4.2,
-            repeat: -1,
-            yoyo: true,
-            ease: 'sine.inOut',
-          });
-        }
+        if (heroHeadlineEl) tl.to(heroHeadlineEl, {
+          autoAlpha: 1, y: 0,
+          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
+          duration: _isMobile ? 0.65 : 0.95,
+        });
+        if (heroSublineEl) tl.to(heroSublineEl, {
+          autoAlpha: 1, y: 0,
+          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
+          duration: _isMobile ? 0.5 : 0.72,
+        }, 0.18);
+        if (heroDotsEl) tl.to(heroDotsEl, {
+          autoAlpha: 1, y: 0,
+          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
+          duration: _isMobile ? 0.45 : 0.62,
+        }, 0.34);
+        if (heroActionsEl) tl.to(heroActionsEl, {
+          autoAlpha: 1, y: 0,
+          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
+          duration: _isMobile ? 0.5 : 0.7,
+        }, 0.46);
+        if (heroStoryEl) tl.to(heroStoryEl, {
+          autoAlpha: 1, y: 0,
+          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
+          duration: _isMobile ? 0.5 : 0.7,
+        }, 0.58);
+        const widgetTargets = [heroLeftWidgetEl, heroRightWidgetEl].filter(Boolean) as HTMLElement[];
+        if (widgetTargets.length) tl.to(widgetTargets, {
+          autoAlpha: 1, y: 0,
+          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
+          duration: _isMobile ? 0.6 : 0.9,
+          stagger: 0.08,
+        }, 0.22);
 
-        if (heroParticlesRef.current) {
-          const particleEls = Array.from(heroParticlesRef.current.querySelectorAll<HTMLElement>('[data-hero-particle]'));
-          particleEls.forEach((particle, index) => {
-            const config = particles[index];
-            gsap.to(particle, {
-              y: index % 2 === 0 ? -20 : 18,
-              x: index % 3 === 0 ? 12 : -10,
-              duration: config.duration,
-              delay: config.delay,
+        // Skip all continuous repeat:-1 ambient tweens on mobile/low-end —
+        // each GSAP tween with repeat:-1 ticks every rAF frame and compounds
+        // badly with scroll on Snapdragon 7s Gen 3 class devices.
+        if (!_isMobile && !_isLowEnd) {
+          if (heroAuraEl) {
+            gsap.to(heroAuraEl, {
+              scale: 1.08,
+              autoAlpha: 0.84,
+              duration: 4.2,
               repeat: -1,
               yoyo: true,
               ease: 'sine.inOut',
             });
-          });
-        }
+          }
 
-        if (heroRingsRef.current) {
-          const [outerRing, innerRing] = Array.from(heroRingsRef.current.children) as HTMLElement[];
-          if (outerRing) {
-            gsap.to(outerRing, {
-              rotation: 360,
-              duration: 42,
-              repeat: -1,
-              ease: 'none',
-              transformOrigin: '50% 50%',
+          if (heroParticlesEl) {
+            const particleEls = Array.from(heroParticlesEl.querySelectorAll<HTMLElement>('[data-hero-particle]'));
+            particleEls.forEach((particle, index) => {
+              const config = particles[index];
+              gsap.to(particle, {
+                y: index % 2 === 0 ? -20 : 18,
+                x: index % 3 === 0 ? 12 : -10,
+                duration: config.duration,
+                delay: config.delay,
+                repeat: -1,
+                yoyo: true,
+                ease: 'sine.inOut',
+              });
             });
           }
-          if (innerRing) {
-            gsap.to(innerRing, {
-              rotation: -360,
-              duration: 34,
+
+          if (heroRingsEl) {
+            const [outerRing, innerRing] = Array.from(heroRingsEl.children) as HTMLElement[];
+            if (outerRing) {
+              gsap.to(outerRing, {
+                rotation: 360,
+                duration: 42,
+                repeat: -1,
+                ease: 'none',
+                transformOrigin: '50% 50%',
+              });
+            }
+            if (innerRing) {
+              gsap.to(innerRing, {
+                rotation: -360,
+                duration: 34,
+                repeat: -1,
+                ease: 'none',
+                transformOrigin: '50% 50%',
+              });
+            }
+          }
+
+          if (heroLeftWidgetEl?.firstElementChild) {
+            gsap.to(heroLeftWidgetEl.firstElementChild, {
+              y: -12,
+              duration: 4.8,
               repeat: -1,
-              ease: 'none',
-              transformOrigin: '50% 50%',
+              yoyo: true,
+              ease: 'sine.inOut',
+            });
+          }
+
+          if (heroRightWidgetEl) {
+            gsap.to(Array.from(heroRightWidgetEl.children), {
+              y: -10,
+              duration: 4.6,
+              repeat: -1,
+              yoyo: true,
+              stagger: 0.2,
+              ease: 'sine.inOut',
             });
           }
         }
 
-        if (heroLeftWidgetRef.current?.firstElementChild) {
-          gsap.to(heroLeftWidgetRef.current.firstElementChild, {
-            y: -12,
-            duration: 4.8,
-            repeat: -1,
-            yoyo: true,
-            ease: 'sine.inOut',
-          });
-        }
-
-        if (heroRightWidgetRef.current) {
-          gsap.to(Array.from(heroRightWidgetRef.current.children), {
-            y: -10,
-            duration: 4.6,
-            repeat: -1,
-            yoyo: true,
-            stagger: 0.2,
-            ease: 'sine.inOut',
-          });
-        }
-
-        if (heroScrollCueRef.current) {
-          gsap.to(heroScrollCueRef.current, {
+        if (heroScrollCueEl) {
+          gsap.to(heroScrollCueEl, {
             y: 10,
             autoAlpha: 0.24,
             duration: 1.4,
@@ -404,75 +446,107 @@ export default function HeroSection() {
             ease: 'sine.inOut',
           });
         }
+      }, hero);
 
-        const scrollTl = gsap.timeline({
-          scrollTrigger: {
-            trigger: hero,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 1.35,
-          },
-        });
+      // ── Wait for Lenis/ScrollTrigger to be ready before registering scrub
+      // animations. This ensures all ST start/end positions are measured
+      // against the correct post-Lenis layout (fixes wrong parallax offsets).
+      await waitForLenis();
+      if (!mounted || !heroRef.current) return;
 
-        if (bgRef.current) {
-          scrollTl.to(bgRef.current, {
-            yPercent: 14,
-            scale: 1.08,
-            transformOrigin: '50% 50%',
-            ease: 'none',
-          }, 0);
-        }
+      // ScrollTrigger tweens live in their own context so they can be
+      // reverted independently if needed, but cleanup still calls ctx.revert()
+      // which covers both contexts via the shared hero element scope.
+      gsap.context(() => {
+        // Mobile/low-end: skip multi-layer scrub parallax entirely.
+        // Each scrubbed tween (yPercent + scale + filter on separate layers) triggers
+        // a compositor update every scroll frame — fatal on Snapdragon 7s Gen 3 class.
+        // We keep only veil fade (opacity-only = cheap) and content fade-out.
+        if (_isMobile || _isLowEnd) {
+          const simpleTl = gsap.timeline({
+            scrollTrigger: {
+              trigger: hero,
+              start: 'top top',
+              end: '60% top',
+              scrub: true, // 1:1 on mobile (no smoothing delay)
+            },
+          });
+          if (contentEl) {
+            simpleTl.to(contentEl, { autoAlpha: 0.15, ease: 'none' }, 0);
+          }
+          if (veilEl) {
+            simpleTl.to(veilEl, { opacity: 0.75, ease: 'none' }, 0);
+          }
+        } else {
+          const scrollTl = gsap.timeline({
+            scrollTrigger: {
+              trigger: hero,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: 1.35,
+            },
+          });
 
-        if (contentRef.current) {
-          scrollTl.to(contentRef.current, {
-            yPercent: -11,
-            autoAlpha: 0.22,
-            scale: 0.965,
-            filter: 'blur(6px)',
-            ease: 'none',
-          }, 0);
-        }
+          if (bgEl) {
+            scrollTl.to(bgEl, {
+              yPercent: 14,
+              scale: 1.08,
+              transformOrigin: '50% 50%',
+              ease: 'none',
+            }, 0);
+          }
 
-        if (veilRef.current) {
-          scrollTl.to(veilRef.current, {
-            opacity: 0.88,
-            ease: 'none',
-          }, 0);
-        }
+          if (contentEl) {
+            scrollTl.to(contentEl, {
+              yPercent: -11,
+              autoAlpha: 0.22,
+              scale: 0.965,
+              // No blur filter during scroll — forces repaint every frame on mid-range GPUs
+              ease: 'none',
+            }, 0);
+          }
 
-        if (heroParticlesRef.current) {
-          scrollTl.to(heroParticlesRef.current, {
-            yPercent: -10,
-            autoAlpha: 0.34,
-            ease: 'none',
-          }, 0);
-        }
+          if (veilEl) {
+            scrollTl.to(veilEl, {
+              opacity: 0.88,
+              ease: 'none',
+            }, 0);
+          }
 
-        if (heroRingsRef.current) {
-          scrollTl.to(heroRingsRef.current, {
-            rotation: 16,
-            scale: 1.08,
-            transformOrigin: '50% 50%',
-            ease: 'none',
-          }, 0);
-        }
+          if (heroParticlesEl) {
+            scrollTl.to(heroParticlesEl, {
+              yPercent: -10,
+              autoAlpha: 0.34,
+              ease: 'none',
+            }, 0);
+          }
 
-        if (heroLeftWidgetRef.current) {
-          scrollTl.to(heroLeftWidgetRef.current, {
-            yPercent: -18,
-            xPercent: -5,
-            autoAlpha: 0.22,
-            ease: 'none',
-          }, 0);
-        }
+          if (heroRingsEl) {
+            scrollTl.to(heroRingsEl, {
+              rotation: 16,
+              scale: 1.08,
+              transformOrigin: '50% 50%',
+              ease: 'none',
+            }, 0);
+          }
 
-        if (heroRightWidgetRef.current) {
-          scrollTl.to(heroRightWidgetRef.current, {
-            yPercent: -16,
-            xPercent: 5,
-            autoAlpha: 0.18,
-            ease: 'none',
-          }, 0);
+          if (heroLeftWidgetEl) {
+            scrollTl.to(heroLeftWidgetEl, {
+              yPercent: -18,
+              xPercent: -5,
+              autoAlpha: 0.22,
+              ease: 'none',
+            }, 0);
+          }
+
+          if (heroRightWidgetEl) {
+            scrollTl.to(heroRightWidgetEl, {
+              yPercent: -16,
+              xPercent: 5,
+              autoAlpha: 0.18,
+              ease: 'none',
+            }, 0);
+          }
         }
       }, hero);
 
@@ -1098,8 +1172,8 @@ export default function HeroSection() {
               target="_blank"
               rel="noopener noreferrer"
               className="get-started-btn"
-              data-cursor="button"
-              data-cursor-label="Let's Go">
+             
+             >
               Get Started
               <span className="btn-arrow">→</span>
             </a>
@@ -1135,8 +1209,8 @@ export default function HeroSection() {
             onMouseLeave={() => { setViewBtnHovered(false); if (storyOpenTimerRef.current) { clearTimeout(storyOpenTimerRef.current); storyOpenTimerRef.current = null; } }}
             className="view-story-btn"
             aria-label="View our story"
-            data-cursor="video"
-            data-cursor-label="Play"
+           
+           
             style={{ touchAction: 'manipulation' }}
           >
             {/* Animated play ring */}
@@ -1639,10 +1713,7 @@ export default function HeroSection() {
   letter-spacing: 0.15em;
   text-transform: uppercase;
 
-  cursor: none !important;
-  position: relative;
 
-  transform: scale(1.03);
 
   transition: 
     transform 0.35s cubic-bezier(0.34,1.56,0.64,1),
@@ -1713,7 +1784,7 @@ export default function HeroSection() {
         /* ── View Our Story Button ───────────────────────── */
         .view-story-btn {
           display: flex; align-items: center; gap: 0.75rem;
-          background: transparent; border: none; cursor: none !important;
+
           padding: 0; outline: none;
         }
         .story-ring { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -1738,14 +1809,7 @@ export default function HeroSection() {
           -webkit-backdrop-filter: blur(12px);
           overflow: hidden;
         }
-        .story-overlay *, .story-overlay *::before, .story-overlay *::after {
-          /* cursor: none only on real pointer devices, not touch */
-        }
-        @media (hover: hover) and (pointer: fine) {
-          .story-overlay, .story-overlay *, .story-overlay *::before, .story-overlay *::after {
-            cursor: none !important;
-          }
-        }
+
         .story-close-btn {
           position: fixed; top: 1.75rem; right: 1.75rem;
           z-index: 9995; width: 44px; height: 44px;

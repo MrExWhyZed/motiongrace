@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import LazySection from '@/app/components/LazySection';
 import Footer from '@/components/Footer';
 import ScrollAnimationInit from '@/app/components/ScrollAnimationInit';
 import ServicePageNav from '@/app/components/ServicePageNav';
@@ -295,6 +296,7 @@ export default function CinematicProductCommercials() {
         </div>
       </section>
 
+      <LazySection minHeight="600px" rootMargin="400px">
       {/* ── STYLE PILLARS ── */}
       <section data-gsap-section="style-pillars" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
@@ -411,6 +413,8 @@ export default function CinematicProductCommercials() {
         </div>
       </section>
 
+      </LazySection>
+      <LazySection minHeight="500px" rootMargin="350px">
       {/* ── IMMERSIVE BRAND WORLDS ── */}
       <section data-gsap-section="brand-worlds" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
@@ -547,6 +551,7 @@ export default function CinematicProductCommercials() {
         </div>
       </section>
 
+      </LazySection>
       {/* ── DIGITAL TWIN ── */}
       <section data-gsap-section="digital-twin" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
@@ -615,6 +620,7 @@ export default function CinematicProductCommercials() {
         </div>
       </section>
 
+      <LazySection minHeight="400px" rootMargin="300px">
       {/* ── TECHNICAL SPECS ── */}
       <section data-gsap-section="specs" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
@@ -694,6 +700,7 @@ export default function CinematicProductCommercials() {
         </div>
       </section>
 
+      </LazySection>
       <Footer />
       </div>
     </main>

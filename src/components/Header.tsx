@@ -80,8 +80,17 @@ export default function Header() {
   }, [collapsed]);
 
   useEffect(() => {
-    document.body.style.overflow = (menuOpen || contactOpen) ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    if (menuOpen || contactOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = 'pan-y';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = 'pan-y';
+    };
   }, [menuOpen, contactOpen]);
 
   const handleLinkClick = (href: string, external?: boolean) => {

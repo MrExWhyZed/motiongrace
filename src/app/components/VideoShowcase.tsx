@@ -11,12 +11,51 @@ export default function VideoShowcase() {
   const ctaRef       = useRef<HTMLDivElement>(null);
   const outerRingRef = useRef<HTMLDivElement>(null);
   const innerRingRef = useRef<HTMLDivElement>(null);
+  const videoRef     = useRef<HTMLVideoElement>(null);
 
   const [ctaVisible, setCtaVisible] = useState(false);
 
+  /* ── Force video play on mobile ──
+     iOS Safari ignores the `autoPlay` attribute on videos inside sticky/overflow
+     containers. We must call .play() imperatively after mount, and again on any
+     visibility change (e.g. tab switch back). The video is already muted + playsInline
+     so iOS allows it without a user gesture. */
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const tryPlay = () => {
+      if (video.paused) {
+        video.play().catch(() => {
+          // Autoplay blocked — listen for first user interaction then retry
+          const retry = () => { video.play().catch(() => {}); document.removeEventListener('touchstart', retry); document.removeEventListener('click', retry); };
+          document.addEventListener('touchstart', retry, { once: true });
+          document.addEventListener('click', retry, { once: true });
+        });
+      }
+    };
+
+    // Play immediately
+    tryPlay();
+
+    // Re-play when tab becomes visible again (iOS pauses on tab switch)
+    const onVisibility = () => { if (document.visibilityState === 'visible') tryPlay(); };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    // Re-play when video stalls or is paused by the browser
+    video.addEventListener('pause', tryPlay);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      video.removeEventListener('pause', tryPlay);
+    };
+  }, []);
+
+  /* ── DESKTOP: GSAP pinned scroll ── */
   useEffect(() => {
     if (!sectionRef.current) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches) return;
 
     let mounted = true;
     let cleanup = () => {};
@@ -30,11 +69,9 @@ export default function VideoShowcase() {
       if (!mounted || !sectionRef.current) return;
       gsap.registerPlugin(ScrollTrigger);
 
-      // Skip blur filters on low-end desktops
       const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
       const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
-      const isLowEnd = cores <= 4 || memory <= 4
-        || window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
+      const isLowEnd = cores <= 4 || memory <= 4;
 
       const section   = sectionRef.current;
       const scrim     = scrimRef.current;
@@ -45,12 +82,9 @@ export default function VideoShowcase() {
       if (!scrim || !cta) return;
 
       const ctx = gsap.context(() => {
-
-        /* ── Ring rotations — slower on low-end to reduce GPU overdraw ── */
         if (outerRing) gsap.to(outerRing, { rotation: 360,  duration: isLowEnd ? 80 : 38, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
         if (innerRing) gsap.to(innerRing, { rotation: -360, duration: isLowEnd ? 60 : 30, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
 
-        /* ── Scroll: darken scrim → reveal CTA ── */
         const tl = gsap.timeline({
           scrollTrigger: {
             trigger: section,
@@ -64,14 +98,12 @@ export default function VideoShowcase() {
           },
         });
 
-        /* Scrim darkens as we scroll */
         tl.fromTo(scrim,
           { opacity: 0 },
           { opacity: 1, ease: 'power1.inOut', duration: 0.5 },
           0
         );
 
-        /* CTA fades up — skip blur filter on low-end */
         tl.fromTo(cta,
           { opacity: 0, y: 32, ...(isLowEnd ? {} : { filter: 'blur(16px)' }) },
           { opacity: 1, y: 0,  ...(isLowEnd ? {} : { filter: 'blur(0px)' }), ease: 'power3.out', duration: 0.5 },
@@ -89,47 +121,126 @@ export default function VideoShowcase() {
     };
   }, []);
 
+  /* ── MOBILE: scroll-progress reveal — mirrors desktop GSAP logic in vanilla JS ──
+     The section is 300vh tall with a sticky inner, exactly like desktop.
+     We read scroll progress (0→1) through the section and:
+       0%–40%  → video plays clean, no overlay
+       40%–65% → scrim fades in (CSS transition triggered by class)
+       65%–100%→ CTA visible
+     This way the user watches the full pinned video before anything overlays.
+  ── */
+  useEffect(() => {
+    if (!sectionRef.current) return;
+    if (!window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCtaVisible(true);
+      sectionRef.current.classList.add('vs-mobile-entered');
+      return;
+    }
+
+    const section = sectionRef.current;
+    let lastScrimState = false;
+    let lastCtaState   = false;
+    let rafId: number;
+
+    const onScroll = () => {
+      rafId = requestAnimationFrame(() => {
+        const rect     = section.getBoundingClientRect();
+        const total    = section.offsetHeight - window.innerHeight; // scrollable distance
+        const scrolled = -rect.top; // how far we've scrolled into the section
+        const progress = Math.max(0, Math.min(1, scrolled / total));
+
+        // Scrim: fade in after 40% scroll progress
+        const wantsScrim = progress > 0.40;
+        if (wantsScrim !== lastScrimState) {
+          lastScrimState = wantsScrim;
+          if (wantsScrim) {
+            section.classList.add('vs-mobile-entered');
+          } else {
+            section.classList.remove('vs-mobile-entered');
+          }
+        }
+
+        // CTA: appear after 65% scroll progress
+        const wantsCta = progress > 0.65;
+        if (wantsCta !== lastCtaState) {
+          lastCtaState = wantsCta;
+          setCtaVisible(wantsCta);
+        }
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); // run once in case already scrolled
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   return (
     <>
       <section
         ref={sectionRef}
         id="cta"
         data-gsap-section="default"
-        style={{ height: '300vh', position: 'relative', background: '#000', isolation: 'isolate', zIndex: 0 }}
+        className="vs-section"
+        style={{
+          position: 'relative',
+          background: '#000',
+          isolation: 'isolate',
+          zIndex: 0,
+        }}
       >
+        {/* sticky wrapper — works on both desktop and mobile.
+            NOTE: overflow:clip instead of overflow:hidden is critical on iOS Safari.
+            overflow:hidden on a sticky element creates a new scroll container which
+            breaks sticky positioning AND video autoplay on WebKit. clip clips
+            visually without creating a scroll context. */}
         <div style={{
-          position: 'sticky', top: 0, height: '100vh',
-          overflow: 'hidden',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'sticky',
+          top: 0,
+          height: '100svh',
+          overflow: 'clip',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
 
           {/* ── Fullscreen autoplay video ── */}
           <video
+            ref={videoRef}
             src={VIDEO_URL}
             autoPlay
             muted
             loop
             playsInline
+            preload="auto"
             style={{
               position: 'absolute', inset: 0,
               width: '100%', height: '100%',
               objectFit: 'cover',
               display: 'block',
               zIndex: 0,
+              WebkitTransform: 'translateZ(0)',
             }}
           />
 
-          {/* ── Scroll-driven dark scrim ── */}
+          {/* ── Scrim ──
+               Desktop: GSAP animates opacity directly (starts at 0, no transition)
+               Mobile:  CSS transition fires when .vs-mobile-entered is added to section */}
           <div
             ref={scrimRef}
+            className="vs-scrim"
             style={{
               position: 'absolute', inset: 0, zIndex: 1,
-              opacity: 0,
               background: 'linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(2,2,10,0.85) 100%)',
             }}
           />
 
-          {/* Gold aura glow — shows with CTA */}
+          {/* Gold aura glow */}
           <div style={{
             position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
             background: 'radial-gradient(ellipse 60% 45% at 50% 50%, rgba(201,169,110,0.07) 0%, transparent 70%)',
@@ -162,10 +273,10 @@ export default function VideoShowcase() {
           {/* ── CTA content ── */}
           <div
             ref={ctaRef}
+            className={`vs-cta${ctaVisible ? ' vs-cta--visible' : ''}`}
             style={{
               position: 'absolute', inset: 0, zIndex: 10,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              opacity: 0,
               pointerEvents: ctaVisible ? 'auto' : 'none',
               padding: '0 1.25rem',
             }}
@@ -208,33 +319,33 @@ export default function VideoShowcase() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ display: 'flex', gap: '0.85rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Link
-                  href="https://app.motiongraceco.com/"
-                  className="vs-add-project-btn"
-                >
-                  Add Project
-                  <span className="vs-btn-arrow">→</span>
-                </Link>
+                  <Link
+                    href="https://app.motiongraceco.com/"
+                    className="vs-add-project-btn"
+                  >
+                    Add Project
+                    <span className="vs-btn-arrow">→</span>
+                  </Link>
 
-                <button
-                  onClick={() => document.querySelector('#showreel')?.scrollIntoView({ behavior: 'smooth' })}
-                  style={{
-                    padding: '0.9rem 2.4rem', borderRadius: '9999px',
-                    background: 'rgba(237,233,227,0.03)',
-                    backdropFilter: 'blur(16px) saturate(1.2)',
-                    WebkitBackdropFilter: 'blur(16px) saturate(1.2)',
-                    border: '1px solid rgba(237,233,227,0.08)',
-                    color: 'rgba(237,233,227,0.48)',
-                    fontSize: '10px', fontWeight: 600,
-                    letterSpacing: '0.18em', textTransform: 'uppercase',
-                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.3s ease',
-                  }}
-                  onMouseEnter={e => { const el = e.currentTarget as HTMLButtonElement; el.style.background = 'rgba(237,233,227,0.08)'; el.style.borderColor = 'rgba(237,233,227,0.18)'; el.style.color = 'rgba(237,233,227,0.88)'; }}
-                  onMouseLeave={e => { const el = e.currentTarget as HTMLButtonElement; el.style.background = 'rgba(237,233,227,0.03)'; el.style.borderColor = 'rgba(237,233,227,0.08)'; el.style.color = 'rgba(237,233,227,0.48)'; }}
-                >
-                  View Our Work
-                </button>
-              </div>
+                  <button
+                    onClick={() => document.querySelector('#showreel')?.scrollIntoView({ behavior: 'smooth' })}
+                    style={{
+                      padding: '0.9rem 2.4rem', borderRadius: '9999px',
+                      background: 'rgba(237,233,227,0.03)',
+                      backdropFilter: 'blur(16px) saturate(1.2)',
+                      WebkitBackdropFilter: 'blur(16px) saturate(1.2)',
+                      border: '1px solid rgba(237,233,227,0.08)',
+                      color: 'rgba(237,233,227,0.48)',
+                      fontSize: '10px', fontWeight: 600,
+                      letterSpacing: '0.18em', textTransform: 'uppercase',
+                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.3s ease',
+                    }}
+                    onMouseEnter={e => { const el = e.currentTarget as HTMLButtonElement; el.style.background = 'rgba(237,233,227,0.08)'; el.style.borderColor = 'rgba(237,233,227,0.18)'; el.style.color = 'rgba(237,233,227,0.88)'; }}
+                    onMouseLeave={e => { const el = e.currentTarget as HTMLButtonElement; el.style.background = 'rgba(237,233,227,0.03)'; el.style.borderColor = 'rgba(237,233,227,0.08)'; el.style.color = 'rgba(237,233,227,0.48)'; }}
+                  >
+                    View Our Work
+                  </button>
+                </div>
               </div>
 
               {/* Trust signals */}
@@ -267,13 +378,60 @@ export default function VideoShowcase() {
       </section>
 
       <style>{`
+        /* 300vh scroll tunnel on all devices — sticky inner pins to viewport */
+        .vs-section { height: 300vh; }
+
         @keyframes vsScrollDrop {
           0%   { top: 0;   opacity: 1; }
           70%  { top: 60%; opacity: 0.2; }
           100% { top: 0;   opacity: 1; }
         }
 
-        /* ── Add Project button — mirrors get-started-btn ── */
+        /* ── Scrim: starts hidden ──
+           Desktop: GSAP sets inline opacity — no CSS transition needed.
+           Mobile:  CSS transition fires when .vs-mobile-entered class is toggled. */
+        .vs-scrim {
+          opacity: 0;
+        }
+
+        @media (hover: none), (pointer: coarse), (max-width: 1024px) {
+          .vs-scrim {
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          .vs-mobile-entered .vs-scrim {
+            opacity: 1;
+          }
+        }
+
+        /* ── CTA: CSS-only fade-up ── */
+        .vs-cta {
+          opacity: 0;
+          transform: translateY(28px);
+          transition:
+            opacity  0.7s cubic-bezier(0.4, 0, 0.2, 1),
+            transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .vs-cta--visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        /* ── Reduced motion overrides ── */
+        @media (prefers-reduced-motion: reduce) {
+          .vs-scrim,
+          .vs-cta {
+            transition: none !important;
+          }
+          .vs-mobile-entered .vs-scrim {
+            opacity: 1;
+          }
+          .vs-cta--visible {
+            opacity: 1 !important;
+            transform: none !important;
+          }
+        }
+
+        /* ── Add Project button ── */
         .vs-add-project-btn {
           display: inline-flex;
           align-items: center;

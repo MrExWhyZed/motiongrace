@@ -43,107 +43,101 @@ const showcaseItems = [
 
 type Item = typeof showcaseItems[0];
 
-// ─── Particles ────────────────────────────────────────────────────────────────
-type Particle = {
-  id: number; x: number; y: number; vx: number; vy: number;
-  life: number; maxLife: number; size: number;
-};
-
-// FIX: activeRef is passed in (stable, card-owned) — never created inline at call site
-function useParticles(activeRef: React.MutableRefObject<boolean>, accentRgb: string) {
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<Particle[]>([]);
-  const rafRef       = useRef<number>(0);
-  const idRef        = useRef(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx2d = canvas.getContext('2d');
-    if (!ctx2d) return;
-
-    const cores    = (navigator as any).hardwareConcurrency ?? 8;
-    const memory   = (navigator as any).deviceMemory ?? 8;
-    const isLowEnd = cores <= 4 || memory <= 4;
-    const SPAWN_EVERY   = isLowEnd ? 6 : 3;
-    const MAX_PARTICLES = isLowEnd ? 20 : 60;
-
-    let visible = !document.hidden;
-    const onVisibility = () => { visible = !document.hidden; };
-    document.addEventListener('visibilitychange', onVisibility);
-
-    let frame = 0;
-    let lastTime = 0;
-    const loop = (now: number) => {
-      rafRef.current = requestAnimationFrame(loop);
-      if (!visible) return;
-      if (isLowEnd && now - lastTime < 32) return;
-      lastTime = now;
-
-      ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-      if (!activeRef.current) { particlesRef.current = []; return; }
-
-      if (frame % SPAWN_EVERY === 0 && particlesRef.current.length < MAX_PARTICLES) {
-        const edge = Math.random();
-        let x = 0, y = 0;
-        if      (edge < 0.25) { x = Math.random() * canvas.width;  y = 0; }
-        else if (edge < 0.5)  { x = canvas.width;                  y = Math.random() * canvas.height; }
-        else if (edge < 0.75) { x = Math.random() * canvas.width;  y = canvas.height; }
-        else                  { x = 0;                              y = Math.random() * canvas.height; }
-        const angle = Math.atan2(canvas.height / 2 - y, canvas.width / 2 - x);
-        const speed = 0.3 + Math.random() * 0.7;
-        particlesRef.current.push({
-          id: idRef.current++, x, y,
-          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-          life: 0, maxLife: 80 + Math.random() * 60, size: 1 + Math.random() * 2,
-        });
-      }
-      frame++;
-      particlesRef.current = particlesRef.current.filter(p => p.life < p.maxLife);
-      particlesRef.current.forEach(p => {
-        p.x += p.vx; p.y += p.vy; p.life++;
-        const t     = p.life / p.maxLife;
-        const alpha = t < 0.3 ? t / 0.3 : 1 - (t - 0.3) / 0.7;
-        ctx2d.beginPath();
-        ctx2d.arc(p.x, p.y, p.size * (1 - t * 0.5), 0, Math.PI * 2);
-        ctx2d.fillStyle = `rgba(${accentRgb},${alpha * 0.55})`;
-        ctx2d.fill();
-      });
-    };
-    rafRef.current = requestAnimationFrame(loop);
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accentRgb]);
-
-  return canvasRef;
-}
 
 // ─── MediaBackground ──────────────────────────────────────────────────────────
+// active = true  → video plays / GIF animates
+// active = false → video paused on first frame / GIF frozen via canvas snapshot
 const MediaBackground = React.memo(function MediaBackground({
-  item, mediaRef,
+  item, mediaRef, active,
 }: {
   item: Item;
   mediaRef: React.MutableRefObject<HTMLVideoElement | HTMLImageElement | null>;
+  active: boolean;
 }) {
   const shared: React.CSSProperties = {
     position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
   };
+
+  // ── Video: play/pause driven by active prop ──────────────────────────────
+  useEffect(() => {
+    if (item.mediaType !== 'video') return;
+    const v = mediaRef.current as HTMLVideoElement | null;
+    if (!v) return;
+    if (active) {
+      v.play().catch(() => {});
+    } else {
+      v.pause();
+    }
+  }, [active, item.mediaType, mediaRef]);
+
   if (item.mediaType === 'video') {
     return (
       <video
         ref={mediaRef as React.MutableRefObject<HTMLVideoElement>}
-        src={item.image} autoPlay loop muted playsInline disablePictureInPicture preload="auto"
+        src={item.image}
+        loop muted playsInline disablePictureInPicture
+        // preload="auto" so first frame is ready before hover
+        preload="auto"
         style={{ ...shared, transform: 'translateZ(0)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
       />
     );
   }
+
+  // ── GIF: swap src to freeze/animate ─────────────────────────────────────
+  // Browsers have no native "pause GIF" API. The standard trick:
+  // while idle, point src at a canvas-captured still of the first frame.
+  // On hover, restore the real GIF src — animation restarts from frame 1.
+  const gifRef   = useRef<HTMLImageElement>(null);
+  const stillRef = useRef<string>('');   // blob URL of the frozen first frame
+  const realSrc  = item.image;
+
+  // Capture the first frame as a blob URL once the image loads
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth || 400;
+        c.height = img.naturalHeight || 400;
+        c.getContext('2d')?.drawImage(img, 0, 0);
+        c.toBlob(blob => {
+          if (blob) stillRef.current = URL.createObjectURL(blob);
+          // Start frozen
+          if (gifRef.current && stillRef.current) {
+            gifRef.current.src = stillRef.current;
+          }
+        }, 'image/png');
+      } catch {
+        // Cross-origin canvas taint — fall back to keeping the real src (GIF plays)
+      }
+    };
+    img.src = realSrc;
+    return () => { if (stillRef.current) URL.revokeObjectURL(stillRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realSrc]);
+
+  // Swap between still and animated src based on active
+  useEffect(() => {
+    const el = gifRef.current;
+    if (!el) return;
+    if (active) {
+      // Restore real GIF — append cache-buster so browser re-fetches from
+      // cache and restarts animation from frame 1 (already cached, no network hit)
+      el.src = realSrc + (realSrc.includes('?') ? '&_p=1' : '?_p=1');
+    } else {
+      if (stillRef.current) el.src = stillRef.current;
+    }
+  }, [active, realSrc]);
+
   return (
     <img
-      ref={mediaRef as React.MutableRefObject<HTMLImageElement>}
-      src={item.image} alt={item.alt}
+      ref={(el) => {
+        gifRef.current = el;
+        (mediaRef as React.MutableRefObject<HTMLImageElement | null>).current = el;
+      }}
+      src={realSrc}   // initial src — will be swapped to still once canvas captures
+      alt={item.alt}
       style={{ ...shared, transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
     />
   );
@@ -159,138 +153,45 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
   onEnter: (id: number, wrapperEl: HTMLElement) => void;
   onLeave:  (wrapperEl: HTMLElement) => void;
 }) {
-  const wrapperRef    = useRef<HTMLDivElement>(null);
-  const cardRef       = useRef<HTMLDivElement>(null);
-  // tiltRef is a dedicated wrapper ONLY for rAF perspective/tilt transforms.
-  // cardRef is GSAP-only (height, shadow, border). Never cross-write between them.
-  const tiltRef       = useRef<HTMLDivElement>(null);
-  const mediaRef      = useRef<HTMLVideoElement | HTMLImageElement | null>(null);
-  const glowRef       = useRef<HTMLDivElement>(null);
-  const dotRef        = useRef<HTMLDivElement>(null);
-  const ringRef       = useRef<HTMLDivElement>(null);
-  const sweepRef      = useRef<HTMLDivElement>(null);
-  const innerGlowRef  = useRef<HTMLDivElement>(null);
-  const cornersRef    = useRef<(HTMLDivElement | null)[]>([]);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const cardRef    = useRef<HTMLDivElement>(null);
+  const mediaRef   = useRef<HTMLVideoElement | HTMLImageElement | null>(null);
+  // active drives MediaBackground play/pause directly — no parent video juggling needed
+  const [active, setActive] = useState(false);
 
-  // FIX: stable refs owned here, never created inline
-  const activeRef      = useRef(false);
-  const particleCanvas = useParticles(activeRef, item.accentRgb);
+  const floatAmplitude = [22, 34, 44][item.depth];
+  const floatDuration  = [5.5, 6.8, 5.0][item.depth];
+  const floatDelay     = -(index % 5) * 0.9;
 
-  const isHoveredRef = useRef(false);
-  const mouseLive    = useRef({ x: 0.5, y: 0.5 });
-  const mouseSmooth  = useRef({ x: 0.5, y: 0.5 });
-  const tiltSmooth   = useRef({ rx: 0, ry: 0 });
-  const magSmooth    = useRef({ x: 0, y: 0 });
-  const rafRef       = useRef<number>(0);
-
-  // Float: each card drifts at its own pace/phase so they feel organic and independent.
-  // depth controls amplitude (how far it travels), index staggers the phase so no
-  // two cards peak or trough at the same time.
-  const floatAmplitude = [10, 18, 26][item.depth]; // px — deeper = more movement
-  const floatDuration  = [4.2, 5.1, 3.8][item.depth]; // seconds — varied speed
-  const floatDelay     = -(index % 5) * 0.9; // negative = start mid-animation, no sync pop
-
-  // ── rAF tilt/parallax ─────────────────────────────────────────────────────
-  useEffect(() => {
-    const LM = 0.12, LT = 0.08, LG = 0.07, EPS = 0.001;
-    const tick = () => {
-      rafRef.current = requestAnimationFrame(tick);
-      if (document.hidden) return;
-
-      const hov = isHoveredRef.current;
-      mouseSmooth.current.x += ((hov ? mouseLive.current.x : 0.5) - mouseSmooth.current.x) * LM;
-      mouseSmooth.current.y += ((hov ? mouseLive.current.y : 0.5) - mouseSmooth.current.y) * LM;
-      const mx = mouseSmooth.current.x, my = mouseSmooth.current.y;
-
-      tiltSmooth.current.rx += ((hov ? (my - 0.5) * -14 : 0) - tiltSmooth.current.rx) * LT;
-      tiltSmooth.current.ry += ((hov ? (mx - 0.5) *  14 : 0) - tiltSmooth.current.ry) * LT;
-      magSmooth.current.x   += ((hov ? (mx - 0.5) *  18 : 0) - magSmooth.current.x)   * LG;
-      magSmooth.current.y   += ((hov ? (my - 0.5) *  10 : 0) - magSmooth.current.y)   * LG;
-
-      const idle = !hov
-        && Math.abs(tiltSmooth.current.rx) < EPS && Math.abs(tiltSmooth.current.ry) < EPS
-        && Math.abs(magSmooth.current.x)   < EPS && Math.abs(magSmooth.current.y)   < EPS;
-      if (idle) return;
-
-      // rAF owns tiltRef exclusively for transform. cardRef is GSAP-only.
-      if (tiltRef.current)
-        tiltRef.current.style.transform = `perspective(900px) rotateX(${tiltSmooth.current.rx}deg) rotateY(${tiltSmooth.current.ry}deg) translate(${magSmooth.current.x * 0.6}px,${magSmooth.current.y * 0.6}px)`;
-      if (mediaRef.current && hov && item.mediaType !== 'video')
-        (mediaRef.current as HTMLImageElement).style.transform = `translateZ(0) scale(1.12) translate(${(mx-0.5)*-8}px,${(my-0.5)*-8}px)`;
-      if (glowRef.current)
-        glowRef.current.style.background = `radial-gradient(circle at ${mx*100}% ${my*100}%, rgba(${item.accentRgb},0.18) 0%, transparent 55%)`;
-      if (dotRef.current) {
-        dotRef.current.style.left = `calc(${mx*100}% - 5px)`;
-        dotRef.current.style.top  = `calc(${my*100}% - 5px)`;
-      }
-      if (ringRef.current) {
-        ringRef.current.style.left = `calc(${mx*100}% - 22px)`;
-        ringRef.current.style.top  = `calc(${my*100}% - 22px)`;
-      }
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── GSAP hover-in ─────────────────────────────────────────────────────────
+  // ── GSAP hover-in: scale up + activate media ────────────────────────────
   const playHoverIn = useCallback(() => {
     const g = gsapRef.current;
     if (!g || !wrapperRef.current || !cardRef.current) return;
-    isHoveredRef.current = true;
-    activeRef.current    = true;
-
-    g.to(wrapperRef.current, { width: 'clamp(480px,46vw,620px)', duration: 0.72, ease: 'power3.out', overwrite: 'auto' });
+    setActive(true);
+    g.to(wrapperRef.current, {
+      width: 'clamp(480px,46vw,620px)',
+      duration: 0.65, ease: 'power3.out', overwrite: 'auto',
+    });
     g.to(cardRef.current, {
       height: 'clamp(420px,55vw,560px)',
-      boxShadow: `0 40px 80px rgba(0,0,0,0.8),0 0 0 1px rgba(${item.accentRgb},0.15),0 0 80px rgba(${item.accentRgb},0.1)`,
-      borderColor: `rgba(${item.accentRgb},0.3)`,
-      duration: 0.72, ease: 'power3.out', overwrite: 'auto',
+      duration: 0.65, ease: 'power3.out', overwrite: 'auto',
     });
-    if (particleCanvas.current) g.to(particleCanvas.current, { opacity: 1, duration: 0.4, ease: 'power2.out' });
-    if (mediaRef.current && item.mediaType !== 'video')
-      g.to(mediaRef.current, { filter: 'saturate(1.1) brightness(0.9)', duration: 0.5, ease: 'power2.out' });
-    if (glowRef.current)      g.to(glowRef.current,      { opacity: 1, duration: 0.4, ease: 'power2.out' });
-    if (sweepRef.current)     g.fromTo(sweepRef.current, { yPercent: -100 }, { yPercent: 100, duration: 0.8, ease: 'power2.inOut' });
-    if (innerGlowRef.current) g.to(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.2)`, duration: 0.5, ease: 'power2.out' });
-    if (dotRef.current)       g.to(dotRef.current,  { opacity: 0.9, duration: 0.3, ease: 'power2.out' });
-    if (ringRef.current)      g.to(ringRef.current, { opacity: 1,   duration: 0.3, ease: 'power2.out' });
-    cornersRef.current.forEach((el, i) => {
-      if (el) g.to(el, { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out', delay: i * 0.06 });
-    });
-  }, [gsapRef, item.accentRgb, item.mediaType, particleCanvas]);
+  }, [gsapRef]);
 
-  // ── GSAP hover-out ────────────────────────────────────────────────────────
+  // ── GSAP hover-out: shrink + deactivate media ───────────────────────────
   const playHoverOut = useCallback(() => {
     const g = gsapRef.current;
     if (!g || !wrapperRef.current || !cardRef.current) return;
-    isHoveredRef.current = false;
-    // Flip activeRef synchronously. The canvas element's opacity is what GSAP
-    // fades visually — activeRef only gates particle spawning. Keeping it in
-    // onComplete caused orphaned callbacks: if playHoverIn fired before the
-    // fade-out tween completed, overwrite:'auto' killed the tween but the
-    // onComplete never ran, leaving activeRef permanently true or firing at a
-    // random future frame mid-next-hover-in. Each cycle leaked one callback.
-    activeRef.current = false;
-
-    g.to(wrapperRef.current, { width: 'clamp(260px,26vw,340px)', duration: 0.65, ease: 'power3.out', overwrite: 'auto' });
+    setActive(false);
+    g.to(wrapperRef.current, {
+      width: 'clamp(260px,26vw,340px)',
+      duration: 0.6, ease: 'power3.out', overwrite: 'auto',
+    });
     g.to(cardRef.current, {
       height: 'clamp(340px,44vw,460px)',
-      boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
-      borderColor: `rgba(${item.accentRgb},0.07)`,
-      duration: 0.65, ease: 'power3.out', overwrite: 'auto',
+      duration: 0.6, ease: 'power3.out', overwrite: 'auto',
     });
-    if (particleCanvas.current) g.to(particleCanvas.current, { opacity: 0, duration: 0.35, ease: 'power2.in' });
-    if (mediaRef.current && item.mediaType !== 'video')
-      g.to(mediaRef.current, { scale: 1, x: 0, y: 0, filter: 'saturate(0.85) brightness(0.85)', duration: 1.8, ease: 'power3.out' });
-    if (glowRef.current)      g.to(glowRef.current,      { opacity: 0, duration: 0.4, ease: 'power2.in' });
-    if (dotRef.current)       g.to(dotRef.current,       { opacity: 0, duration: 0.25, ease: 'power2.in' });
-    if (ringRef.current)      g.to(ringRef.current,      { opacity: 0, duration: 0.25, ease: 'power2.in' });
-    if (innerGlowRef.current) g.to(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.04)`, duration: 0.4, ease: 'power2.in' });
-    cornersRef.current.forEach(el => {
-      if (el) g.to(el, { opacity: 0, scale: 0.6, duration: 0.35, ease: 'power2.in' });
-    });
-  }, [gsapRef, item.accentRgb, item.mediaType, particleCanvas]);
+  }, [gsapRef]);
 
   useEffect(() => {
     if (!wrapperRef.current) return;
@@ -298,35 +199,10 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
     (wrapperRef.current as any).__hoverOut = playHoverOut;
   }, [playHoverIn, playHoverOut]);
 
-  useEffect(() => {
-    const tryInit = () => {
-      const g = gsapRef.current;
-      if (!g) { requestAnimationFrame(tryInit); return; }
-      if (glowRef.current)      g.set(glowRef.current,      { opacity: 0 });
-      if (dotRef.current)       g.set(dotRef.current,       { opacity: 0 });
-      if (ringRef.current)      g.set(ringRef.current,      { opacity: 0 });
-      if (innerGlowRef.current) g.set(innerGlowRef.current, { boxShadow: `inset 0 0 80px rgba(${item.accentRgb},0.04)` });
-      if (particleCanvas.current) g.set(particleCanvas.current, { opacity: 0 });
-      if (mediaRef.current && item.mediaType !== 'video')
-        g.set(mediaRef.current, { filter: 'saturate(0.85) brightness(0.85)' });
-      cornersRef.current.forEach(el => el && g.set(el, { opacity: 0, scale: 0.6 }));
-    };
-    tryInit();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!cardRef.current) return;
-    const r = cardRef.current.getBoundingClientRect();
-    mouseLive.current.x = (e.clientX - r.left) / r.width;
-    mouseLive.current.y = (e.clientY - r.top)  / r.height;
-  }, []);
-
   return (
     <div
       ref={wrapperRef}
       data-showcase-wrapper="true"
-      data-cursor="image"
       onMouseEnter={() => onEnter(item.id, wrapperRef.current!)}
       onMouseLeave={() => onLeave(wrapperRef.current!)}
       style={{
@@ -334,65 +210,51 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
         width: 'clamp(260px,26vw,340px)',
         contain: 'layout style',
         transform: 'translateZ(0)',
-        willChange: 'transform, width',
         zIndex: 1, position: 'relative',
         animation: `card-float ${floatDuration}s ease-in-out infinite`,
         animationDelay: `${floatDelay}s`,
-        // CSS var picked up by the keyframe
         ['--float-y' as any]: `${floatAmplitude}px`,
       }}
     >
       <div
         ref={cardRef}
-        onMouseMove={handleMouseMove}
         style={{
           position: 'relative', borderRadius: '18px', overflow: 'hidden',
-          height: 'clamp(340px,44vw,460px)', cursor: 'none',
-          border: `1px solid rgba(${item.accentRgb},0.07)`,
+          height: 'clamp(340px,44vw,460px)',
+          border: `1px solid rgba(${item.accentRgb},0.09)`,
           boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
-          willChange: 'height',
           isolation: 'isolate',
+          // Smooth scale hint for GPU — only on the card, not every wrapper
+          willChange: 'width, height',
         }}
       >
-        {/* tiltRef: rAF writes perspective/tilt transform here ONLY.
-            cardRef above is GSAP-only (height/shadow/border). Never cross-write. */}
-        <div ref={tiltRef} style={{ position:'absolute', inset:0, willChange:'transform' }}>
-        <canvas ref={particleCanvas} width={620} height={560}
-          style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:5 }}
-        />
-        <MediaBackground item={item} mediaRef={mediaRef} />
-        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.55) 100%)', pointerEvents:'none', zIndex:2 }} />
-        <div ref={glowRef} style={{ position:'absolute', inset:0, mixBlendMode:'screen', pointerEvents:'none', zIndex:3 }} />
-        <div ref={sweepRef} style={{ position:'absolute', inset:0, zIndex:4, pointerEvents:'none', background:`linear-gradient(to bottom, transparent 0%, rgba(${item.accentRgb},0.06) 50%, transparent 100%)`, transform:'translateY(-100%)' }} />
-        <div ref={innerGlowRef} style={{ position:'absolute', inset:0, borderRadius:'18px', pointerEvents:'none', zIndex:6 }} />
-
-        {[
-          { top:14, left:14,    bt:true, bl:true  },
-          { top:14, right:14,   bt:true, br:true  },
-          { bottom:14, left:14,  bb:true, bl:true  },
-          { bottom:14, right:14, bb:true, br:true  },
-        ].map((c, ci) => (
-          <div key={ci} ref={el => { cornersRef.current[ci] = el; }} style={{
-            position:'absolute', width:'20px', height:'20px', zIndex:7,
-            top:(c as any).top, bottom:(c as any).bottom, left:(c as any).left, right:(c as any).right,
-            borderTop:    (c as any).bt ? `1px solid rgba(${item.accentRgb},0.6)` : 'none',
-            borderBottom: (c as any).bb ? `1px solid rgba(${item.accentRgb},0.6)` : 'none',
-            borderLeft:   (c as any).bl ? `1px solid rgba(${item.accentRgb},0.6)` : 'none',
-            borderRight:  (c as any).br ? `1px solid rgba(${item.accentRgb},0.6)` : 'none',
-            pointerEvents:'none',
-          }} />
-        ))}
-
-        <div ref={dotRef} style={{ position:'absolute', zIndex:20, pointerEvents:'none', width:'10px', height:'10px', borderRadius:'50%', background:item.accent, boxShadow:`0 0 16px 4px rgba(${item.accentRgb},0.5)`, mixBlendMode:'screen' }} />
-        <div ref={ringRef} style={{ position:'absolute', zIndex:19, pointerEvents:'none', width:'44px', height:'44px', borderRadius:'50%', border:`1px solid rgba(${item.accentRgb},0.35)` }} />
-        </div>
+        <MediaBackground item={item} mediaRef={mediaRef} active={active} />
+        {/* Subtle radial vignette to give depth without extra layers */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.5) 100%)',
+          pointerEvents: 'none', zIndex: 2,
+        }} />
       </div>
     </div>
   );
 });
 
 // ─── Mobile Card ──────────────────────────────────────────────────────────────
-const MobileCard = React.memo(function MobileCard({ item, index }: { item: Item; index: number }) {
+const MobileCard = React.memo(function MobileCard({ item, index, isActive }: { item: Item; index: number; isActive: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Play/pause based on active state to avoid concurrent video decoding
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (isActive) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [isActive]);
+
   return (
     <div style={{ flexShrink: 0, width: '100%', scrollSnapAlign: 'center' }}>
       <div style={{
@@ -403,11 +265,16 @@ const MobileCard = React.memo(function MobileCard({ item, index }: { item: Item;
         isolation: 'isolate',
       }}>
         {item.mediaType === 'video' ? (
-          <video src={item.image} autoPlay loop muted playsInline disablePictureInPicture
+          <video
+            ref={videoRef}
+            src={item.image}
+            loop muted playsInline disablePictureInPicture
+            preload={index === 0 ? 'metadata' : 'none'}
             style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'translateZ(0)' }}
           />
         ) : (
           <img src={item.image} alt={item.alt}
+            loading={index === 0 ? 'eager' : 'lazy'}
             style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', transform:'translateZ(0)' }}
           />
         )}
@@ -482,7 +349,7 @@ function MobileCarousel() {
         className="mobile-carousel-track"
       >
         {showcaseItems.map((item, i) => (
-          <MobileCard key={item.id} item={item} index={i} />
+          <MobileCard key={item.id} item={item} index={i} isActive={i === active} />
         ))}
       </div>
 
@@ -545,27 +412,6 @@ export default function ShowcaseSection() {
   const [leftActive,  setLeftActive]  = useState(false);
   const [rightActive, setRightActive] = useState(false);
 
-  // FIX: opacity-only dimming — removed filter:blur/saturate from wrapper elements.
-  // Applying CSS filter to a wrapper that contains <video> forces a new compositing
-  // layer on every frame the filter changes, causing the entire card (including the
-  // video decode surface) to repaint → visible flicker on every hover transition.
-  const applyNeighborState = useCallback((
-    hoveredWrapper: HTMLElement | null,
-    g: typeof import('gsap').gsap,
-  ) => {
-    const all = Array.from(
-      trackRef.current?.querySelectorAll<HTMLElement>('[data-showcase-wrapper="true"]') ?? []
-    );
-    all.forEach(w => {
-      const isHov      = w === hoveredWrapper;
-      const isNeighbor = hoveredWrapper !== null && !isHov;
-      g.to(w, {
-        opacity: isNeighbor ? 0.38 : 1,
-        duration: 0.55, ease: 'power2.out', overwrite: 'auto',
-      });
-    });
-  }, []);
-
   const handleEnter = useCallback((id: number, wrapperEl: HTMLElement) => {
     // FIX: pause carousel immediately
     isPausedRef.current = true;
@@ -595,7 +441,6 @@ export default function ShowcaseSection() {
         hoveredWrapperRef.current = wrapperEl;
         const hoverIn = (wrapperEl as any).__hoverIn;
         if (hoverIn) hoverIn();
-        applyNeighborState(wrapperEl, g2);
       }, 0);
       return;
     }
@@ -607,8 +452,7 @@ export default function ShowcaseSection() {
     hoveredWrapperRef.current = wrapperEl;
     const hoverIn = (wrapperEl as any).__hoverIn;
     if (hoverIn) hoverIn();
-    applyNeighborState(wrapperEl, g);
-  }, [applyNeighborState]);
+  }, []);
 
   const handleLeave = useCallback((_wrapperEl: HTMLElement) => {
     // Clear any pending enter timer
@@ -628,27 +472,21 @@ export default function ShowcaseSection() {
       // Guard: Only proceed if no new card is pending
       if (pendingIdRef.current !== null) return;
       
-      const g = gsapRef.current;
-      if (!g) return;
-      
       if (hoveredWrapperRef.current) {
         const hoverOut = (hoveredWrapperRef.current as any).__hoverOut;
         if (hoverOut) hoverOut();
       }
       hoveredWrapperRef.current = null;
       
-      // FIX #3: Only unpause carousel if we're truly done with all hover interactions
-      // Small delay to prevent rapid re-entry from unpausing mid-animation
       setTimeout(() => {
         if (!hoveredWrapperRef.current && !pendingIdRef.current) {
           isPausedRef.current = false;
         }
       }, 50);
       
-      applyNeighborState(null, g);
       leaveTimerRef.current = null;
     }, 40);
-  }, [applyNeighborState]);
+  }, []);
 
   useEffect(() => {
     if (!sectionRef.current) return;
@@ -668,8 +506,8 @@ export default function ShowcaseSection() {
       if (headerRef.current) {
         const kids = Array.from(headerRef.current.children) as HTMLElement[];
         gsap.fromTo(kids,
-          { autoAlpha: 0, y: 28, filter: 'blur(8px)' },
-          { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 1.1, stagger: 0.1, ease: 'power3.out',
+          { autoAlpha: 0, y: 22 },
+          { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.08, ease: 'power3.out',
             scrollTrigger: { trigger: headerRef.current, start: 'top 88%', once: true } }
         );
       }
@@ -880,6 +718,11 @@ export default function ShowcaseSection() {
         }
         [data-showcase-wrapper="true"]:hover { animation-play-state: paused; }
         .mobile-carousel-track::-webkit-scrollbar { display: none; }
+        /* Disable float animation on touch devices — 10 concurrent CSS animations
+           with composite transforms cause scroll jank on Snapdragon 7s Gen 3 */
+        @media (hover: none), (pointer: coarse) {
+          [data-showcase-wrapper="true"] { animation: none !important; }
+        }
       `}</style>
     </section>
   );

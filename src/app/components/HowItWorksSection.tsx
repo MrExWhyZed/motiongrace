@@ -104,7 +104,7 @@ function WorkflowCard({ step, index }: { step: (typeof steps)[0]; index: number 
   return (
     <div
       data-hiw-card
-      style={{ perspective: '1400px', width: '100%', height: '100%', opacity: 0 }}
+      style={{ perspective: '1400px', width: '100%', height: '100%', minHeight: 'clamp(180px, 30vw, 0px)', opacity: 0 }}
     >
       <div
         ref={ref}
@@ -180,9 +180,9 @@ function WorkflowCard({ step, index }: { step: (typeof steps)[0]; index: number 
         {/* Card content */}
         <div style={{
           position: 'relative', zIndex: 1,
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          display: 'flex', flexDirection: 'column', gap: 'clamp(1rem, 3vw, 2rem)',
           height: '100%',
-          padding: 'clamp(1.6rem, 2.6vw, 2.4rem)',
+          padding: 'clamp(1.4rem, 2.6vw, 2.4rem)',
           boxSizing: 'border-box',
         }}>
 
@@ -248,7 +248,6 @@ function WorkflowCard({ step, index }: { step: (typeof steps)[0]; index: number 
               lineHeight: 1.7,
               color: live.active ? 'rgba(237,233,227,0.42)' : 'rgba(237,233,227,0.2)',
               margin: 0,
-              maxWidth: '30ch',
               transition: 'color 300ms ease',
             }}>
               {step.body}
@@ -313,20 +312,58 @@ export default function HowItWorksSection() {
         background: '#04040A',
         position: 'relative',
         overflow: 'hidden',
-        /* fill exactly one viewport height */
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        // Prevent flicker caused by VideoShowcase's position:fixed pin-spacer
-        // injecting into the DOM and triggering a repaint in Chrome/Brave.
-        // isolation:isolate creates an explicit stacking context; translateZ(0)
-        // promotes this section to its own GPU compositing layer so adjacent
-        // pin transitions don't bleed in.
         isolation: 'isolate',
         transform: 'translateZ(0)',
       }}
     >
+      <style>{`
+        @media (min-width: 768px) {
+          .hiw-section-inner {
+            height: 100vh !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          .hiw-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            grid-template-rows: 1fr 1fr !important;
+            width: min(92vw, 1240px) !important;
+            height: min(82vh, 800px) !important;
+            border-radius: 20px !important;
+            overflow: hidden !important;
+            border: 1px solid rgba(237,233,227,0.06) !important;
+            position: relative !important;
+          }
+          .hiw-grid-divider-v { display: block !important; }
+          .hiw-grid-divider-h { display: block !important; }
+          .hiw-badge { display: flex !important; }
+        }
+        @media (max-width: 767px) {
+          .hiw-section-inner {
+            padding: 60px 0 60px !important;
+          }
+          .hiw-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1px !important;
+            width: calc(100vw - 32px) !important;
+            height: auto !important;
+            border-radius: 20px !important;
+            overflow: hidden !important;
+            border: 1px solid rgba(237,233,227,0.06) !important;
+            position: relative !important;
+            background: rgba(237,233,227,0.04) !important;
+          }
+          .hiw-grid-divider-v { display: none !important; }
+          .hiw-grid-divider-h { display: none !important; }
+          .hiw-badge { display: none !important; }
+          [data-hiw-card] {
+            height: auto !important;
+            min-height: 0 !important;
+          }
+        }
+      `}</style>
       {/* Ambient glows */}
       <div style={{ position:'absolute', top:'-15%', left:'-8%', width:700, height:700, background:'radial-gradient(ellipse at center,rgba(201,169,110,0.04) 0%,transparent 65%)', pointerEvents:'none' }} />
       <div style={{ position:'absolute', bottom:'-12%', right:'-6%', width:600, height:600, background:'radial-gradient(ellipse at center,rgba(201,169,110,0.03) 0%,transparent 65%)', pointerEvents:'none' }} />
@@ -345,62 +382,57 @@ export default function HowItWorksSection() {
       <div style={{ position:'absolute', top:0, left:'6%', right:'6%', height:1, background:'linear-gradient(90deg,transparent,rgba(201,169,110,0.15),transparent)' }} />
       <div style={{ position:'absolute', bottom:0, left:'6%', right:'6%', height:1, background:'linear-gradient(90deg,transparent,rgba(201,169,110,0.08),transparent)' }} />
 
-      {/* Centered grid — fills the viewport with padding */}
-      <div
-        ref={gridRef}
-        style={{
-          position: 'relative',
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: '1fr 1fr',
-          /* take up available space inside the padded container */
-          width: 'min(92vw, 1240px)',
-          height: 'min(82vh, 800px)',
-          borderRadius: 20,
-          overflow: 'hidden',
-          border: '1px solid rgba(237,233,227,0.06)',
-        }}
-      >
-        {steps.map((step, i) => (
-          <WorkflowCard key={i} step={step} index={i} />
-        ))}
+      {/* Inner wrapper — desktop: full-viewport centered; mobile: padded scroll */}
+      <div className="hiw-section-inner" style={{ position: 'relative', zIndex: 1, width: '100%' }}>
+        {/* Centered grid — fills the viewport with padding */}
+        <div
+          ref={gridRef}
+          className="hiw-grid"
+          style={{
+            margin: '0 auto',
+          }}
+        >
+          {steps.map((step, i) => (
+            <WorkflowCard key={i} step={step} index={i} />
+          ))}
 
-        {/* Center "The Workflow" badge */}
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 20, pointerEvents: 'none', userSelect: 'none',
-        }}>
-          {/* Crosshair arms */}
-          <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:110, height:1, background:'linear-gradient(90deg,transparent,rgba(201,169,110,0.2),transparent)' }} />
-          <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:1, height:110, background:'linear-gradient(180deg,transparent,rgba(201,169,110,0.2),transparent)' }} />
-
-          <div style={{
-            width: 'clamp(84px, 9vw, 120px)',
-            height: 'clamp(84px, 9vw, 120px)',
-            borderRadius: '50%',
-            border: '1px solid rgba(201,169,110,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(4,4,10,0.96)',
-            backdropFilter: 'blur(24px)',
-            boxShadow: '0 0 48px rgba(201,169,110,0.09), 0 0 96px rgba(4,4,10,0.9)',
-            position: 'relative',
+          {/* Center "The Workflow" badge — desktop only */}
+          <div className="hiw-badge" style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 20, pointerEvents: 'none', userSelect: 'none',
           }}>
-            <div style={{ position:'absolute', inset:7, borderRadius:'50%', border:'1px solid rgba(201,169,110,0.07)' }} />
+            {/* Crosshair arms */}
+            <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:110, height:1, background:'linear-gradient(90deg,transparent,rgba(201,169,110,0.2),transparent)' }} />
+            <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:1, height:110, background:'linear-gradient(180deg,transparent,rgba(201,169,110,0.2),transparent)' }} />
+
             <div style={{
-              textAlign: 'center', position: 'relative', zIndex: 1,
-              fontSize: 'clamp(10px, 1.1vw, 13px)',
-              fontWeight: 900, letterSpacing: '-0.01em', lineHeight: 1.2,
-              color: '#C9A96E',
+              width: 'clamp(84px, 9vw, 120px)',
+              height: 'clamp(84px, 9vw, 120px)',
+              borderRadius: '50%',
+              border: '1px solid rgba(201,169,110,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(4,4,10,0.96)',
+              backdropFilter: 'blur(24px)',
+              boxShadow: '0 0 48px rgba(201,169,110,0.09), 0 0 96px rgba(4,4,10,0.9)',
+              position: 'relative',
             }}>
-              The<br />Workflow
+              <div style={{ position:'absolute', inset:7, borderRadius:'50%', border:'1px solid rgba(201,169,110,0.07)' }} />
+              <div style={{
+                textAlign: 'center', position: 'relative', zIndex: 1,
+                fontSize: 'clamp(10px, 1.1vw, 13px)',
+                fontWeight: 900, letterSpacing: '-0.01em', lineHeight: 1.2,
+                color: '#C9A96E',
+              }}>
+                The<br />Workflow
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Grid divider lines */}
-        <div style={{ position:'absolute', top:0, bottom:0, left:'50%', width:1, background:'rgba(237,233,227,0.05)', zIndex:10 }} />
-        <div style={{ position:'absolute', left:0, right:0, top:'50%', height:1, background:'rgba(237,233,227,0.05)', zIndex:10 }} />
+          {/* Grid divider lines — desktop only */}
+          <div className="hiw-grid-divider-v" style={{ position:'absolute', top:0, bottom:0, left:'50%', width:1, background:'rgba(237,233,227,0.05)', zIndex:10 }} />
+          <div className="hiw-grid-divider-h" style={{ position:'absolute', left:0, right:0, top:'50%', height:1, background:'rgba(237,233,227,0.05)', zIndex:10 }} />
+        </div>
       </div>
     </section>
   );

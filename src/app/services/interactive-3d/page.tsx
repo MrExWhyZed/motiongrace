@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import LazySection from '@/app/components/LazySection';
 import Footer from '@/components/Footer';
 import ScrollAnimationInit from '@/app/components/ScrollAnimationInit';
 import ServicePageNav from '@/app/components/ServicePageNav';
@@ -28,6 +29,9 @@ const specs = [
 
 export default function Interactive3D() {
   const [mounted, setMounted] = useState(false);
+  const [iframeVisible, setIframeVisible] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
@@ -212,29 +216,67 @@ export default function Interactive3D() {
             </p>
           </div>
 
-          {/* iframe embed */}
-          <div
-            data-reveal="up"
-            className="relative w-full rounded-2xl overflow-hidden"
-            style={{
-              border: '1px solid rgba(139,92,246,0.2)',
-              boxShadow: '0 0 80px rgba(139,92,246,0.08), 0 0 160px rgba(74,158,255,0.04), 0 40px 120px rgba(0,0,0,0.5)',
-              background: 'rgba(4,4,10,0.95)',
-            }}
+          {/* iframe embed — lazy-loaded, only injected after IntersectionObserver fires */}
+          <LazySection
+            minHeight="clamp(400px, 70vh, 720px)"
+            rootMargin="200px"
+            style={{ borderRadius: 16, overflow: 'hidden' }}
           >
-            {/* The embedded tool */}
-            <iframe
-              src="https://ar-product-viewer-coolio.netlify.app"
-              title="AR Product Viewer"
-              allow="camera; gyroscope; accelerometer; xr-spatial-tracking; fullscreen"
+            <div
+              data-reveal="up"
+              className="relative w-full rounded-2xl overflow-hidden"
               style={{
-                width: '100%',
-                height: 'clamp(480px, 80vh, 900px)',
-                border: 'none',
-                display: 'block',
+                border: '1px solid rgba(139,92,246,0.2)',
+                boxShadow: '0 0 80px rgba(139,92,246,0.08), 0 0 160px rgba(74,158,255,0.04), 0 40px 120px rgba(0,0,0,0.5)',
+                background: 'rgba(4,4,10,0.95)',
               }}
-            />
-          </div>
+            >
+              {/* Loading skeleton shown until iframe fires onLoad */}
+              {!iframeLoaded && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 16,
+                    zIndex: 2,
+                    background: 'rgba(4,4,10,0.95)',
+                  }}
+                >
+                  <div style={{
+                    width: 48, height: 48, borderRadius: '50%',
+                    border: '2px solid rgba(139,92,246,0.15)',
+                    borderTopColor: '#8B5CF6',
+                    animation: 'spin 0.9s linear infinite',
+                  }} />
+                  <p style={{ fontSize: 11, color: 'rgba(237,233,227,0.3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                    Loading viewer…
+                  </p>
+                  <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+              )}
+              <iframe
+                ref={iframeRef}
+                src="https://ar-product-viewer-coolio.netlify.app"
+                title="AR Product Viewer"
+                allow="camera; gyroscope; accelerometer; xr-spatial-tracking; fullscreen"
+                loading="lazy"
+                onLoad={() => setIframeLoaded(true)}
+                style={{
+                  width: '100%',
+                  // Taller on desktop, fits viewport on mobile without overflow
+                  height: 'clamp(380px, 75vw, 900px)',
+                  border: 'none',
+                  display: 'block',
+                  opacity: iframeLoaded ? 1 : 0,
+                  transition: 'opacity 0.5s ease',
+                }}
+              />
+            </div>
+          </LazySection>
 
           {/* Hint pills */}
           <div className="flex flex-wrap items-center justify-center gap-6 mt-6">
@@ -252,6 +294,7 @@ export default function Interactive3D() {
         </div>
       </section>
       {/* ── TECHNICAL SPECS ── */}
+      <LazySection minHeight="400px" rootMargin="300px">
       <section data-gsap-section="specs" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="section-divider mb-24" />
@@ -283,6 +326,7 @@ export default function Interactive3D() {
           </div>
         </div>
       </section>
+      </LazySection>
 
       {/* ── CTA ── */}
       <section id="cta" data-gsap-section="cta" className="py-32 px-6">

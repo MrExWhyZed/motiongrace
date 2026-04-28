@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import LazySection from '@/app/components/LazySection';
 import Link from 'next/link';
 
 const services = [
@@ -89,46 +90,54 @@ function BackgroundMesh() {
 
       if (!pointerGlow) return;
 
+      // On touch/mobile devices, skip mouse-tracking & expensive ambient animations
+      const isTouchDevice = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+      const cores = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+      const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+      const isLowOrMid = cores <= 6 || memory <= 8;
+
       const ctx = gsap.context(() => {
-        gsap.set(pointerGlow, {
-          xPercent: -50,
-          yPercent: -50,
-          x: host.clientWidth * 0.5,
-          y: host.clientHeight * 0.5,
-          autoAlpha: 0.38,
-        });
-
-        const xTo = gsap.quickTo(pointerGlow, 'x', { duration: 0.45, ease: 'power3.out' });
-        const yTo = gsap.quickTo(pointerGlow, 'y', { duration: 0.45, ease: 'power3.out' });
-
-        const handleMove = (event: MouseEvent) => {
-          const rect = host.getBoundingClientRect();
-          xTo(event.clientX - rect.left);
-          yTo(event.clientY - rect.top);
-        };
-
-        host.addEventListener('mousemove', handleMove, { passive: true });
-
-        ambients.forEach((ambient, index) => {
-          gsap.to(ambient, {
-            x: index === 0 ? 48 : index === 1 ? -54 : 34,
-            y: index === 0 ? -36 : index === 1 ? 26 : -44,
-            scale: index === 1 ? 1.12 : 1.08,
-            duration: 6 + index * 1.3,
-            repeat: -1,
-            yoyo: true,
-            ease: 'sine.inOut',
+        if (!isTouchDevice) {
+          gsap.set(pointerGlow, {
+            xPercent: -50,
+            yPercent: -50,
+            x: host.clientWidth * 0.5,
+            y: host.clientHeight * 0.5,
+            autoAlpha: 0.38,
           });
-        });
 
-        cleanup = () => {
-          host.removeEventListener('mousemove', handleMove);
-        };
+          const xTo = gsap.quickTo(pointerGlow, 'x', { duration: 0.45, ease: 'power3.out' });
+          const yTo = gsap.quickTo(pointerGlow, 'y', { duration: 0.45, ease: 'power3.out' });
+
+          const handleMove = (event: MouseEvent) => {
+            const rect = host.getBoundingClientRect();
+            xTo(event.clientX - rect.left);
+            yTo(event.clientY - rect.top);
+          };
+
+          host.addEventListener('mousemove', handleMove, { passive: true });
+          cleanup = () => { host.removeEventListener('mousemove', handleMove); };
+        }
+
+        // Skip ambient float animations on low/mid range to prevent compositor overload
+        if (!isTouchDevice && !isLowOrMid) {
+          ambients.forEach((ambient, index) => {
+            gsap.to(ambient, {
+              x: index === 0 ? 48 : index === 1 ? -54 : 34,
+              y: index === 0 ? -36 : index === 1 ? 26 : -44,
+              scale: index === 1 ? 1.12 : 1.08,
+              duration: 6 + index * 1.3,
+              repeat: -1,
+              yoyo: true,
+              ease: 'sine.inOut',
+            });
+          });
+        }
       }, host);
 
       const previousCleanup = cleanup;
       cleanup = () => {
-        previousCleanup();
+        previousCleanup?.();
         ctx.revert();
       };
     })();
@@ -660,6 +669,7 @@ export default function ServicesSection() {
           </div>
         </div>
 
+        <LazySection minHeight="480px" rootMargin="350px" style={{ width: '100%' }}>
         <div className="hidden grid-cols-3 gap-6 md:grid">
           {services.map((service, index) => (
             <ServiceCard
@@ -690,7 +700,7 @@ export default function ServicesSection() {
               <button
                 onClick={() => setActiveAccordion(activeAccordion === service.id ? null : service.id)}
                 className="flex w-full items-center justify-between gap-4 p-5 text-left"
-                data-cursor="button"
+               
               >
                 <div className="flex items-center gap-4">
                   <div
@@ -773,6 +783,7 @@ export default function ServicesSection() {
             </div>
           ))}
         </div>
+        </LazySection>
       </div>
     </section>
   );
