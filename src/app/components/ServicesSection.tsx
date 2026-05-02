@@ -152,7 +152,7 @@ function BackgroundMesh() {
     <div ref={hostRef} className="absolute inset-0 pointer-events-none overflow-hidden">
       <div
         ref={pointerGlowRef}
-        className="absolute h-[28rem] w-[28rem] rounded-full"
+        className="absolute h-[28rem] w-[28rem] rounded-full hidden md:block"
         style={{
           background: 'radial-gradient(circle, rgba(201,169,110,0.08) 0%, rgba(201,169,110,0.02) 35%, transparent 70%)',
           filter: 'blur(34px)',
@@ -178,7 +178,7 @@ function BackgroundMesh() {
           ref={(element) => {
             ambientRefs.current[index] = element;
           }}
-          className={`absolute rounded-full ${ambient.className}`}
+          className={`absolute rounded-full hidden md:block ${ambient.className}`}
           style={{
             background: ambient.background,
             filter: 'blur(40px)',
@@ -684,101 +684,96 @@ export default function ServicesSection() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 md:hidden">
-          {services.map((service) => (
+        <div className="flex flex-col md:hidden pb-8 relative z-20 gap-8">
+          {services.map((service, index) => (
             <div
               key={service.id}
-              className="overflow-hidden rounded-[24px] border transition-all duration-700"
+              className="sticky w-full origin-top"
               style={{
-                borderColor: activeAccordion === service.id ? `${service.accent}25` : 'var(--border)',
-                background:
-                  activeAccordion === service.id
-                    ? `linear-gradient(145deg, rgba(${service.accentRgb},0.06) 0%, var(--card) 100%)`
-                    : 'var(--card)',
+                top: `calc(110px + ${index * 16}px)`,
+                zIndex: 10 + index,
               }}
             >
-              <button
-                onClick={() => setActiveAccordion(activeAccordion === service.id ? null : service.id)}
-                className="flex w-full items-center justify-between gap-4 p-5 text-left"
-               
+              <div
+                className="overflow-hidden rounded-[32px] border p-6 shadow-2xl"
+                style={{
+                  background: `linear-gradient(145deg, rgba(16,16,24,1) 0%, rgba(8,8,18,1) 40%, rgba(4,4,10,1) 100%)`,
+                  borderColor: `rgba(${service.accentRgb},0.25)`,
+                  boxShadow: `0 24px 48px rgba(0,0,0,0.9), inset 0 1px 0 rgba(${service.accentRgb},0.2)`,
+                }}
               >
-                <div className="flex items-center gap-4">
-                  <div
-                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl"
+                {/* Header: Number & Tag */}
+                <div className="mb-6 flex items-center justify-between">
+                  <span
+                    className="rounded-full px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.2em]"
                     style={{
-                      background: `rgba(${service.accentRgb},0.12)`,
                       color: service.accent,
-                      border: `1px solid rgba(${service.accentRgb},0.2)`,
+                      background: `rgba(${service.accentRgb},0.15)`,
+                      border: `1px solid rgba(${service.accentRgb},0.3)`,
+                    }}
+                  >
+                    {service.tag}
+                  </span>
+                  <span className="text-4xl font-black opacity-30" style={{ color: service.accent }}>
+                    {service.number}
+                  </span>
+                </div>
+
+                {/* Title & Icon */}
+                <div className="mb-5 flex items-center gap-4">
+                  <div
+                    className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl"
+                    style={{
+                      background: `rgba(${service.accentRgb},0.15)`,
+                      color: service.accent,
+                      border: `1px solid rgba(${service.accentRgb},0.3)`,
+                      boxShadow: `0 0 20px rgba(${service.accentRgb},0.2)`,
                     }}
                   >
                     {service.icon}
                   </div>
-                  <div>
-                    <span className="mb-0.5 block text-[9px] font-bold uppercase tracking-[0.22em]" style={{ color: service.accent }}>
-                      {service.number} · {service.tag}
-                    </span>
-                    <h3 className="text-base font-bold tracking-tight text-foreground">{service.title}</h3>
-                  </div>
+                  <h3 className="text-[22px] font-bold leading-tight text-foreground">{service.title}</h3>
                 </div>
-                <div
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+
+                {/* Reduced Text */}
+                <p className="mb-6 text-[13px] font-light leading-[1.7] text-muted-foreground/90 line-clamp-3">
+                  {service.description}
+                </p>
+
+                {/* Bold Stats */}
+                <div className="mb-6 grid grid-cols-2 gap-3">
+                  {service.stats.map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="rounded-2xl px-4 py-3"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(${service.accentRgb},0.1) 0%, rgba(${service.accentRgb},0.02) 100%)`,
+                        border: `1px solid rgba(${service.accentRgb},0.15)`,
+                      }}
+                    >
+                      <p className="text-xl font-black" style={{ color: service.accent }}>
+                        {stat.value}
+                      </p>
+                      <p className="mt-1 text-[9px] font-medium tracking-wider text-muted-foreground uppercase">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer Action */}
+                <Link
+                  href={service.href}
+                  className="flex w-full items-center justify-between rounded-full px-5 py-3 text-xs font-bold uppercase tracking-wider transition-colors"
                   style={{
-                    background: `rgba(${service.accentRgb},0.08)`,
-                    border: `1px solid rgba(${service.accentRgb},0.15)`,
+                    background: `rgba(${service.accentRgb},0.1)`,
+                    border: `1px solid rgba(${service.accentRgb},0.2)`,
                     color: service.accent,
-                    transform: activeAccordion === service.id ? 'rotate(45deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1)',
                   }}
                 >
+                  Explore Service
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                </div>
-              </button>
-
-              <div
-                className="overflow-hidden transition-all duration-700 ease-in-out"
-                style={{
-                  maxHeight: activeAccordion === service.id ? '320px' : '0',
-                }}
-              >
-                <div className="flex flex-col gap-4 px-5 pb-5">
-                  <p className="text-sm font-light leading-[1.8] text-muted-foreground">{service.description}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {service.stats.map((stat) => (
-                      <div
-                        key={stat.label}
-                        className="rounded-xl px-3 py-2.5"
-                        style={{
-                          background: `rgba(${service.accentRgb},0.07)`,
-                          border: `1px solid rgba(${service.accentRgb},0.15)`,
-                        }}
-                      >
-                        <p className="text-base font-black" style={{ color: service.accent }}>
-                          {stat.value}
-                        </p>
-                        <p className="text-[10px] font-medium tracking-wide text-muted-foreground">{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs font-medium tracking-wide" style={{ color: service.accent }}>
-                    {service.detail}
-                  </p>
-                  <Link
-                    href={service.href}
-                    className="inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] transition-all duration-300"
-                    style={{
-                      background: `rgba(${service.accentRgb},0.08)`,
-                      border: `1px solid rgba(${service.accentRgb},0.2)`,
-                      color: service.accent,
-                    }}
-                  >
-                    View Service
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </Link>
-                </div>
+                </Link>
               </div>
             </div>
           ))}

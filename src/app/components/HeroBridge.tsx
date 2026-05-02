@@ -102,14 +102,24 @@ export default function HeroBridge() {
     <div
       ref={bridgeRef}
       data-gsap-section="bridge"
-      className="relative pointer-events-none overflow-hidden"
+      className="hero-bridge relative pointer-events-none overflow-hidden"
       style={{
-        height: '180px',
-        marginTop: '-180px',
         zIndex: 5,
         opacity: 0,
       }}
     >
+      <style>{`
+        .hero-bridge {
+          height: 180px;
+          margin-top: -180px;
+        }
+        @media (max-width: 767px) {
+          .hero-bridge {
+            height: 120px;
+            margin-top: 0;
+          }
+        }
+      `}</style>
       {/* Gradient bridge */}
       <div
         className="absolute inset-0"

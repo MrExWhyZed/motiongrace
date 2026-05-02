@@ -257,79 +257,38 @@ export default function Header() {
         .mobile-menu-overlay {
           position: fixed; inset: 0; z-index: 55;
           opacity: 0; pointer-events: none;
-          transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1);
+          transform: translateX(8%);
+          transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .mobile-menu-overlay.menu-open {
           opacity: 1; pointer-events: auto;
+          transform: translateX(0);
         }
 
-        /* Nav items stagger in from below */
+        /* Nav items stagger in from right */
         .mobile-nav-item {
           opacity: 0;
-          transform: translateY(22px);
+          transform: translateX(30px);
           transition:
-            opacity 0.5s cubic-bezier(0.22,1,0.36,1),
-            transform 0.5s cubic-bezier(0.22,1,0.36,1);
+            opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+            transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .mobile-menu-overlay.menu-open .mobile-nav-item {
           opacity: 1;
-          transform: translateY(0);
+          transform: translateX(0);
         }
 
-        /* Large nav text */
-        .mobile-nav-btn {
-          font-size: clamp(2rem, 9vw, 2.8rem); font-weight: 700;
-          letter-spacing: -0.04em; color: rgba(237,233,227,0.4);
-          background: none; border: none; cursor: pointer; padding: 0; line-height: 1.1;
-          font-family: inherit;
-          transition: color 0.3s ease, letter-spacing 0.3s ease;
-          display: block; width: 100%; text-align: center;
+        /* Large right-aligned nav text */
+        .mobile-nav-link-btn {
+          font-size: clamp(3rem, 12vw, 4.5rem); font-weight: 500;
+          letter-spacing: -0.02em; color: #EDE9E3;
+          background: none; border: none; cursor: pointer; padding: 0; line-height: 1.15;
+          font-family: inherit; transition: color 0.3s ease;
+          display: block; width: 100%; text-align: right;
         }
-        .mobile-nav-btn:hover, .mobile-nav-btn:active { color: rgba(237,233,227,0.9); letter-spacing: -0.02em; }
-
-        /* Glass pill button (Contact Us) */
-        .mobile-glass-pill {
-          display: inline-flex; align-items: center; gap: 8px;
-          padding: 0.75rem 1.6rem; border-radius: 100px;
-          background: rgba(237,233,227,0.04);
-          border: 1px solid rgba(237,233,227,0.1);
-          color: rgba(237,233,227,0.65); font-size: 9px; font-weight: 600;
-          letter-spacing: 0.2em; text-transform: uppercase;
-          backdrop-filter: blur(20px) saturate(1.4);
-          -webkit-backdrop-filter: blur(20px) saturate(1.4);
-          cursor: pointer; font-family: inherit; text-decoration: none;
-          transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
+        .mobile-nav-link-btn:hover, .mobile-nav-link-btn:active {
+          color: #C9A96E;
         }
-        .mobile-glass-pill:hover, .mobile-glass-pill:active {
-          background: rgba(237,233,227,0.09);
-          border-color: rgba(237,233,227,0.18);
-          color: rgba(237,233,227,0.95);
-        }
-
-        /* Mobile AI Strategist pill */
-        .mobile-ai-pill {
-          display: inline-flex; align-items: center;
-          padding: 0.75rem 1.6rem; border-radius: 100px;
-          background: rgba(201,89,221,0.05);
-          border: 1px solid rgba(201,89,221,0.22);
-          font-size: 9px; font-weight: 700;
-          letter-spacing: 0.2em; text-transform: uppercase;
-          backdrop-filter: blur(20px) saturate(1.4);
-          -webkit-backdrop-filter: blur(20px) saturate(1.4);
-          cursor: pointer; font-family: inherit; text-decoration: none;
-          transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
-        }
-        .mobile-ai-pill:hover, .mobile-ai-pill:active {
-          background: rgba(201,89,221,0.1);
-          border-color: rgba(201,89,221,0.4);
-          box-shadow: 0 0 18px rgba(201,89,221,0.25), 0 0 36px rgba(8,148,255,0.12);
-        }
-
-        .mobile-footer-info {
-          position: absolute; bottom: 2.25rem; left: 50%; transform: translateX(-50%);
-          opacity: 0; transition: opacity 0.5s 0.4s; text-align: center; white-space: nowrap;
-        }
-        .mobile-menu-overlay.menu-open .mobile-footer-info { opacity: 1; }
 
         /* ─── Contact nav button ─── */
         .contact-nav-btn {
@@ -552,111 +511,78 @@ export default function Header() {
         {/* Backdrop */}
         <div
           className="absolute inset-0"
-          style={{ background: 'rgba(4,4,10,0.96)', backdropFilter: 'blur(32px) saturate(1.4)', WebkitBackdropFilter: 'blur(32px) saturate(1.4)' }}
+          style={{ background: 'rgba(4,4,10,0.98)', backdropFilter: 'blur(32px) saturate(1.4)', WebkitBackdropFilter: 'blur(32px) saturate(1.4)' }}
           onClick={() => setMenuOpen(false)}
         />
-        {/* Ambient glow */}
-        <div className="absolute pointer-events-none" style={{
-          top: '35%', left: '50%', transform: 'translate(-50%,-50%)',
-          width: '70vw', height: '70vw', maxWidth: 360, maxHeight: 360,
-          borderRadius: '50%',
-          background: 'radial-gradient(ellipse at center, rgba(201,89,221,0.05) 0%, rgba(8,148,255,0.04) 40%, transparent 70%)',
-        }} />
 
-        {/* Close button */}
-        <button
-          onClick={() => setMenuOpen(false)}
-          aria-label="Close menu"
-          className="mobile-nav-item"
-          style={{
-            position: 'absolute', top: '1.25rem', right: '1.25rem',
-            width: 40, height: 40, borderRadius: '50%',
-            background: 'rgba(237,233,227,0.05)',
-            border: '1px solid rgba(237,233,227,0.1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: 'rgba(237,233,227,0.5)',
-            fontSize: 16, lineHeight: 1,
-            transition: 'all 0.3s cubic-bezier(0.22,1,0.36,1)',
-            transitionDelay: '0ms',
-            zIndex: 10,
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(237,233,227,0.1)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,227,0.95)';
-            (e.currentTarget as HTMLButtonElement).style.transform = 'rotate(90deg)';
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(237,233,227,0.05)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,227,0.5)';
-            (e.currentTarget as HTMLButtonElement).style.transform = 'rotate(0deg)';
-          }}
-        >
-          ✕
-        </button>
+        {/* Top Header */}
+        <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10">
+          <div className="relative w-[48px] h-[48px] flex-shrink-0" onClick={() => setMenuOpen(false)}>
+            <Image src="/motion_grace_logo.png" alt="Motion Grace" fill className="logo-img object-contain" priority />
+          </div>
+          <button
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+            style={{
+              width: 44, height: 44, borderRadius: '50%',
+              border: '1px solid rgba(237,233,227,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: 'rgba(237,233,227,0.8)',
+              fontSize: 18, fontWeight: 300,
+              transition: 'all 0.3s cubic-bezier(0.22,1,0.36,1)',
+            }}
+          >
+            ✕
+          </button>
+        </div>
 
-        <nav className="relative flex flex-col items-center justify-center h-full px-6" style={{ gap: 0 }}>
-
-          {/* Label */}
-          <p className="mobile-nav-item" style={{
-            fontSize: 8, letterSpacing: '0.28em', textTransform: 'uppercase',
-            color: 'rgba(201,169,110,0.35)', marginBottom: '2.2rem', transitionDelay: '0ms',
-          }}>
-            Navigation
-          </p>
-
-          {/* Nav links */}
+        {/* Center Nav Links (Right aligned) */}
+        <nav className="absolute inset-0 flex flex-col justify-center items-end pr-8" style={{ gap: '0.75rem', paddingTop: '4rem' }}>
           {navLinks.map((link, i) => (
-            <div key={link.label} className="mobile-nav-item" style={{ paddingTop: '0.5rem', paddingBottom: '0.5rem', transitionDelay: `${60 + i * 60}ms` }}>
-              <button className="mobile-nav-btn" onClick={() => handleLinkClick(link.href, link.external)}>
+            <div key={link.label} className="mobile-nav-item" style={{ transitionDelay: `${100 + i * 60}ms` }}>
+              <button className="mobile-nav-link-btn" onClick={() => handleLinkClick(link.href, link.external)}>
                 {link.label}
               </button>
             </div>
           ))}
-
-          {/* Divider */}
-          <div className="mobile-nav-item" style={{
-            height: 1, width: 36, margin: '1.6rem 0',
-            background: 'linear-gradient(90deg, transparent, rgba(237,233,227,0.12), transparent)',
-            transitionDelay: `${60 + navLinks.length * 60}ms`,
-          }} />
-
-          {/* Pill buttons — Pricing + Contact Us + AI Strategist only */}
-          <div className="mobile-nav-item flex flex-col items-center gap-3" style={{ transitionDelay: `${80 + navLinks.length * 60}ms` }}>
-            {/* Pricing */}
-            <a
-              href="https://www.motiongraceco.com/pricing"
-              className="mobile-glass-pill"
-              onClick={() => setMenuOpen(false)}
-            >
-              Pricing
-            </a>
-            {/* Contact Us — glass pill */}
-            <a
-              href="mailto:hello@motiongrace.com"
-              className="mobile-glass-pill"
-              onClick={() => setMenuOpen(false)}
-            >
-              Contact Us
-            </a>
-            {/* AI Strategist */}
-            <a
-              href={AI_STRATEGIST_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mobile-ai-pill"
-              onClick={() => setMenuOpen(false)}
-            >
-              <span className="ai-strategist-nav-text">AI Strategist</span>
-            </a>
+          <div className="mobile-nav-item" style={{ transitionDelay: `${100 + navLinks.length * 60}ms` }}>
+             <button className="mobile-nav-link-btn" onClick={() => handleLinkClick('https://www.motiongraceco.com/pricing', true)}>
+                Pricing
+             </button>
           </div>
-
         </nav>
 
-        {/* Footer tag */}
-        <div className="mobile-footer-info">
-          <p style={{ fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(237,233,227,0.12)' }}>
-            Motion Grace · Premium Motion Studio
-          </p>
+        {/* Bottom Footer Row */}
+        <div className="absolute bottom-0 left-0 right-0 p-8 flex justify-between items-end z-10">
+          {/* Left: Pill button */}
+          <div className="mobile-nav-item" style={{ transitionDelay: '350ms' }}>
+            <button
+              onClick={handleContactOpen}
+              style={{
+                display: 'inline-flex', alignItems: 'center',
+                padding: '0.85rem 1.6rem', borderRadius: '100px',
+                background: 'rgba(237,233,227,0.1)',
+                border: '1px solid rgba(237,233,227,0.2)',
+                color: '#EDE9E3', fontSize: 13, fontWeight: 500,
+                fontFamily: 'inherit', textDecoration: 'none',
+              }}
+            >
+              Contact Us
+            </button>
+          </div>
+          
+          {/* Right: Social Icons */}
+          <div className="mobile-nav-item flex gap-4 items-center" style={{ transitionDelay: '400ms' }}>
+             <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-[#EDE9E3]/70 hover:text-[#EDE9E3] transition-colors">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+             </a>
+             <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-[#EDE9E3]/70 hover:text-[#EDE9E3] transition-colors">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+             </a>
+             <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-[#EDE9E3]/70 hover:text-[#EDE9E3] transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+             </a>
+          </div>
         </div>
       </div>
 

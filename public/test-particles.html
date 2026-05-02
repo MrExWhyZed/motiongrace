@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { background: #020208; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+  @keyframes orb-spin { 100% { transform: rotate(360deg); } }
+  
+  .orb-container {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+  <div class="orb-container" id="ctn">
+    <svg viewBox="0 0 1000 1000" style="width: 140vmin; height: 140vmin; overflow: visible;">
+      <defs>
+        <filter id="orb-noise" x="-100%" y="-100%" width="300%" height="300%">
+          <feTurbulence id="turb" type="fractalNoise" baseFrequency="0.003" numOctaves="2" result="noise" />
+          <feDisplacementMap id="disp" in="SourceGraphic" in2="noise" scale="120" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+          
+          <feGaussianBlur in="displaced" stdDeviation="4" result="glow1" />
+          <feGaussianBlur in="displaced" stdDeviation="15" result="glow2" />
+          <feGaussianBlur in="displaced" stdDeviation="40" result="glow3" />
+          <feGaussianBlur in="displaced" stdDeviation="80" result="glow4" />
+          <feMerge>
+            <feMergeNode in="glow4" />
+            <feMergeNode in="glow3" />
+            <feMergeNode in="glow2" />
+            <feMergeNode in="glow1" />
+            <feMergeNode in="displaced" />
+          </feMerge>
+        </filter>
+
+        <linearGradient id="orb-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#9c43fe" />
+          <stop offset="50%" stopColor="#4cc2e9" />
+          <stop offset="100%" stopColor="#101499" />
+        </linearGradient>
+      </defs>
+      
+      <g filter="url(#orb-noise)">
+        <g style="transform-origin: 500px 500px; animation: orb-spin 20s linear infinite;">
+          <circle cx="500" cy="500" r="350" fill="none" stroke="url(#orb-grad)" stroke-width="3" />
+          <circle cx="500" cy="500" r="350" fill="none" stroke="url(#orb-grad)" stroke-width="12" opacity="0.6" />
+          <circle cx="500" cy="500" r="350" fill="none" stroke="url(#orb-grad)" stroke-width="40" opacity="0.2" />
+        </g>
+      </g>
+    </svg>
+  </div>
+  
+  <script>
+    const ctn = document.getElementById('ctn');
+    const turb = document.getElementById('turb');
+    const disp = document.getElementById('disp');
+    
+    let targetHover = 0;
+    let currentHover = 0;
+    
+    document.addEventListener('mousemove', (e) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+      // Hover when close to center
+      if (dist < window.innerWidth * 0.4) {
+        targetHover = 1;
+      } else {
+        targetHover = 0;
+      }
+    });
+    
+    function update() {
+      currentHover += (targetHover - currentHover) * 0.05;
+      
+      // base frequency goes from 0.003 to 0.15
+      const bf = 0.003 + currentHover * 0.147;
+      turb.setAttribute('baseFrequency', bf);
+      
+      // scale goes from 120 to 1500
+      const s = 120 + currentHover * 1380;
+      disp.setAttribute('scale', s);
+      
+      requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  </script>
+</body>
+</html>

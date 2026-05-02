@@ -70,10 +70,8 @@ function getDeviceTier(): Tier {
 // ── LERP + scrub throttle per tier ───────────────────────────────────────────
 const TIER_CONFIG: Record<Tier, { lerp: number; scrubMs: number; preload: string }> = {
   high:   { lerp: 0.15, scrubMs: 14,  preload: 'auto'     },
-  // mid/low: LOWER lerp = slower chase = fewer decoder seeks per second = less lag.
-  // Raise scrubMs to hard-throttle how often we poke currentTime.
-  mid:    { lerp: 0.06, scrubMs: 50,  preload: 'metadata' },
-  low:    { lerp: 0.04, scrubMs: 80,  preload: 'metadata' },
+  mid:    { lerp: 0.10, scrubMs: 24,  preload: 'auto'     }, // Now uses blob, so we can scrub faster
+  low:    { lerp: 0.08, scrubMs: 36,  preload: 'auto'     }, // Now uses blob, so we can scrub faster
   mobile: { lerp: 0.10, scrubMs: 40,  preload: 'none'     },
 };
 
@@ -114,10 +112,13 @@ export default function ProcessSection() {
   useEffect(() => {
     const tier = getDeviceTier();
     tierRef.current = tier;
-    if (tier === 'mobile' || tier === 'low') return; // low uses step-snap instead
+    if (tier === 'mobile') return; // Mobile uses static cards
     const { lerp, scrubMs } = TIER_CONFIG[tier];
 
+    let isVisible = false;
+
     const tick = () => {
+      if (!isVisible) return;
       rafRef.current = requestAnimationFrame(tick);
       if (document.hidden) return;
 
@@ -134,13 +135,28 @@ export default function ProcessSection() {
         }
       }
     };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
+
+    const io = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      if (isVisible) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        cancelAnimationFrame(rafRef.current);
+      }
+    }, { threshold: 0 });
+
+    if (sectionRef.current) io.observe(sectionRef.current);
+
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(rafRef.current);
+    };
   }, []);
 
   /* ─── Adaptive video fetch ─────────────────────────────────────────────────
-     High-end: full blob → RAM (smoothest scrub, decoder always has data)
-     Mid/low : direct src + browser cache (no memory spike)
+     High-end: full blob → RAM (smoothest scrub)
+     Mid/low : fetched as blob as well, but using lower-res optimized Cloudinary URL
      Mobile  : skipped entirely (mobile shows static cards, no video)
   ─────────────────────────────────────────────────────────────────────────── */
   useEffect(() => {
@@ -150,36 +166,35 @@ export default function ProcessSection() {
     let mounted = true;
     videoReadyRef.current = false;
     setVideoReady(false);
-    setVideoSrc(VIDEO_URL);
+    
+    // Request a lighter H264 main profile version for mid/low to save RAM and decoder load
+    const OPTIMIZED_URL = 'https://res.cloudinary.com/ddgyx80f6/video/upload/w_1024,q_auto,vc_h264:main:3.1/v1777040543/process_pvakzd.mp4';
+    const urlToFetch = tier === 'high' ? VIDEO_URL : OPTIMIZED_URL;
+    setVideoSrc(urlToFetch);
 
-    if (tier === 'high') {
-      const controller = new AbortController();
-      void (async () => {
-        try {
-          const res = await fetch(VIDEO_URL, { signal: controller.signal, cache: 'force-cache' });
-          if (!res.ok) throw new Error(`${res.status}`);
-          const blob = await res.blob();
-          if (!mounted) return;
-          const url = URL.createObjectURL(blob);
-          blobUrlRef.current = url;
-          setVideoSrc(url);
-        } catch {
-          if (!mounted || controller.signal.aborted) return;
-          setVideoSrc(VIDEO_URL);
-        }
-      })();
-      return () => {
-        mounted = false;
-        controller.abort();
-        if (blobUrlRef.current) {
-          URL.revokeObjectURL(blobUrlRef.current);
-          blobUrlRef.current = null;
-        }
-      };
-    }
-
-    // Mid/low: direct URL, no blob
-    return () => { mounted = false; };
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const res = await fetch(urlToFetch, { signal: controller.signal, cache: 'force-cache' });
+        if (!res.ok) throw new Error(`${res.status}`);
+        const blob = await res.blob();
+        if (!mounted) return;
+        const url = URL.createObjectURL(blob);
+        blobUrlRef.current = url;
+        setVideoSrc(url);
+      } catch {
+        if (!mounted || controller.signal.aborted) return;
+        setVideoSrc(urlToFetch);
+      }
+    })();
+    return () => {
+      mounted = false;
+      controller.abort();
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
   }, []);
 
   /* ─── ScrollTrigger ────────────────────────────────────────────────────── */
@@ -203,17 +218,6 @@ export default function ProcessSection() {
       if (vid && vid.duration && isFinite(vid.duration)) {
         const target = clamped * vid.duration;
         targetTimeRef.current = target;
-
-        // LOW tier: no continuous RAF scrub — snap to the midpoint of each step
-        // only when the active step changes. One seek per step transition vs
-        // hundreds of seeks while scrolling through a step.
-        if (tierRef.current === 'low' && videoReadyRef.current) {
-          const snapTime = (steps[step].videoStart + steps[step].videoEnd) / 2 * vid.duration;
-          if (Math.abs(vid.currentTime - snapTime) > 0.25) {
-            vid.currentTime = snapTime;
-            currentTimeRef.current = snapTime;
-          }
-        }
       }
 
       setScrollProgress(clamped);
@@ -659,8 +663,11 @@ function MobileStepCard({ step, index }: { step: StepData; index: number }) {
     <div
       ref={ref}
       style={{
-        borderRadius: 8, background: '#0A0A10',
-        border: `1px solid ${step.accent}14`, padding: '28px 22px',
+        borderRadius: 16, 
+        background: `linear-gradient(145deg, rgba(16,16,24,0.9), rgba(4,4,8,0.95))`,
+        boxShadow: `0 8px 32px rgba(0,0,0,0.5), inset 0 0 0 1px ${step.accent}20`,
+        backdropFilter: 'blur(16px)',
+        padding: '32px 24px',
         opacity: 0, transform: 'translateY(24px)',
         contain: 'content',
         //changed

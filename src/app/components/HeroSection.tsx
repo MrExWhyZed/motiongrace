@@ -129,10 +129,10 @@ export default function HeroSection() {
   /* Story: Screen 2 state (mirrors ProblemSection) */
   const SCREEN2_VH_S = 340;
   const STORY_BEATS_S = [
-    { eyebrow: 'Our Role',       headline: 'The invisible\nCGI powerhouse.',         body: 'We act as the invisible CGI powerhouse behind leading creative agencies and modern brands — taking the friction out of high-end production, transforming conceptual ideas into stunning visual experiences.',              accent: '#C9A96E' },
-    { eyebrow: 'What We Craft',  headline: 'Every frame,\nengineered.',              body: 'By crafting high-fidelity CGI product animations and design-driven narratives, we deliver scalable assets that transcend the limits of traditional photography. Cinematic storytelling fused with absolute product-focused precision.', accent: '#8B7FD4' },
-    { eyebrow: 'Why It Matters', headline: 'Motion.\nEmotion.\nInteractivity.',      body: "Today's brands need more than visuals. Our CGI and 3D solutions allow products to be seen, felt, and explored from every angle — directly driving stronger engagement and measurable sales impact.",                    accent: '#4A9EFF' },
-    { eyebrow: 'Our Promise',    headline: 'Imagination\nmade precise.',             body: 'From luxurious product commercials to immersive interactive CGI, Motion Grace merges artistic vision with cutting-edge technology — ensuring modern brands stand out in a crowded market.',                                  accent: '#C9A96E' },
+    { eyebrow: 'Our Role',       headline: 'The invisible\nCGI powerhouse.',         body: 'We act as the invisible CGI powerhouse behind leading creative agencies and modern brands — taking the friction out of high-end production, transforming conceptual ideas into stunning visual experiences.',              accent: '#0894ff' },
+    { eyebrow: 'What We Craft',  headline: 'Every frame,\nengineered.',              body: 'By crafting high-fidelity CGI product animations and design-driven narratives, we deliver scalable assets that transcend the limits of traditional photography. Cinematic storytelling fused with absolute product-focused precision.', accent: '#c959dd' },
+    { eyebrow: 'Why It Matters', headline: 'Motion.\nEmotion.\nInteractivity.',      body: "Today's brands need more than visuals. Our CGI and 3D solutions allow products to be seen, felt, and explored from every angle — directly driving stronger engagement and measurable sales impact.",                    accent: '#ff2e54' },
+    { eyebrow: 'Our Promise',    headline: 'Imagination\nmade precise.',             body: 'From luxurious product commercials to immersive interactive CGI, Motion Grace merges artistic vision with cutting-edge technology — ensuring modern brands stand out in a crowded market.',                                  accent: '#ff9004' },
   ];
   const STORY_VH_S  = STORY_BEATS_S.length * 220; // 880
   const TOTAL_VH_S  = SCREEN2_VH_S + STORY_VH_S;  // 1220
@@ -311,9 +311,8 @@ export default function HeroSection() {
       const _isMobile = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
       const _cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
       const _memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
-      const _isLowEnd = !_isMobile && (_cores <= 4 || _memory <= 4);
-      // Skip expensive blur filters on mobile/tablet and low-end desktops — causes
-      // compositor layer promotion on every frame the filter changes → heavy GPU load
+      // Skip expensive blur filters on mobile/tablet and low/mid-tier desktops (<= 6 cores or <= 8GB RAM)
+      const _isLowEnd = !_isMobile && (_cores <= 6 || _memory <= 8);
       const useHeroBlur = !_isMobile && !_isLowEnd;
 
       // Run intro tweens immediately — these don't depend on scroll measurements.
@@ -1016,7 +1015,7 @@ export default function HeroSection() {
 
           {/* Orb — fills the full layer, exactly like the original w-full h-[700px] */}
           <div
-            className="absolute pointer-events-none"
+            className="absolute pointer-events-none hidden sm:block"
             style={{ zIndex: 5, inset: 0 }}
           >
             <OrbBackground
@@ -1030,15 +1029,27 @@ export default function HeroSection() {
 
           <div
             ref={heroAuraRef}
-            className="absolute inset-0 z-10"
+            className="absolute inset-0 z-10 hidden sm:block"
             style={{ background: 'radial-gradient(ellipse 60% 35% at 50% 0%, rgba(201,169,110,0.10) 0%, transparent 60%)' }}
           />
+
+          {/* New Mobile Glow using premium purple colors */}
+          <div
+            className="sm:hidden absolute pointer-events-none z-10"
+            style={{
+              top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              width: '120vw', height: '120vw', borderRadius: '50%',
+              background: 'radial-gradient(circle at center, rgba(168,85,247,0.22) 0%, rgba(147,51,234,0.12) 40%, rgba(88,28,135,0.05) 70%, transparent 100%)',
+              filter: 'blur(60px)',
+            }}
+          />
+
           <div className="hero-grain z-20" />
-          <div ref={veilRef} className="hero-golden-veil z-20" />
+          <div ref={veilRef} className="hero-golden-veil z-20 hidden sm:block" />
         </div>
 
         {/* ── Particles ─────────────────────────────────────────── */}
-        <div ref={heroParticlesRef} className="absolute inset-0 pointer-events-none overflow-hidden z-10" style={{ contain: 'strict' }}>
+        <div ref={heroParticlesRef} className="absolute inset-0 pointer-events-none overflow-hidden z-10 hidden sm:block" style={{ contain: 'strict' }}>
           {(isMobile || isLowEnd ? particlesMobile : particles).map((p) => (
             <div
               key={p.id}
@@ -1054,7 +1065,7 @@ export default function HeroSection() {
         </div>
 
         {/* ── Decorative Rings ──────────────────────────────────── */}
-        <div ref={heroRingsRef} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
+        <div ref={heroRingsRef} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 hidden sm:block">
           <div
             className="w-[700px] h-[700px] sm:w-[1000px] sm:h-[1000px] rounded-full border border-primary/[0.05]"
             style={{ borderStyle: 'dashed' }}
@@ -1384,13 +1395,30 @@ export default function HeroSection() {
                   background: `linear-gradient(90deg, transparent 0%, rgba(201,89,221,0) 15%, rgba(201,89,221,${sWordProgress * 0.18}) 35%, rgba(255,240,200,${sWordProgress * 0.28}) 50%, rgba(201,89,221,${sWordProgress * 0.18}) 65%, rgba(201,89,221,0) 85%, transparent 100%)`,
                   transform: 'translateY(-50%)', pointerEvents: 'none',
                 }} />
+                {/* Vibrant Cloud Backgrounds for Screen 2 (No blur for performance) */}
                 <div style={{
-                  position: 'absolute', pointerEvents: 'none',
-                  width: '55vw', height: '45vh', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
-                  background: `radial-gradient(ellipse 80% 70% at 50% 50%, rgba(201,89,221,${sGlowPulse ? 0.055 : sWordProgress * 0.025}) 0%, transparent 70%)`,
-                  filter: 'blur(60px)', transition: sGlowPulse ? 'background 2s ease' : 'background 0.3s ease',
-                  animation: sGlowPulse ? 'subtle-bloom 5s ease-in-out infinite' : 'none',
-                }} />
+                  position: 'absolute', inset: 0, pointerEvents: 'none',
+                  opacity: sTransitionOut ? 0 : sWordProgress > 0.1 ? 1 : 0,
+                  transition: 'opacity 1.5s ease',
+                  zIndex: 0,
+                }}>
+                  <div style={{
+                    position: 'absolute', top: '20%', left: '10%', width: '60vw', height: '60vh',
+                    background: 'radial-gradient(circle, rgba(8,148,255,0.22) 0%, transparent 65%)',
+                    animation: 'float-cloud-1 12s ease-in-out infinite alternate',
+                  }} />
+                  <div style={{
+                    position: 'absolute', bottom: '10%', right: '10%', width: '70vw', height: '70vh',
+                    background: 'radial-gradient(circle, rgba(201,89,221,0.18) 0%, transparent 65%)',
+                    animation: 'float-cloud-2 15s ease-in-out infinite alternate',
+                  }} />
+                  <div style={{
+                    position: 'absolute', top: '40%', left: '50%', transform: 'translateX(-50%)', width: '80vw', height: '50vh',
+                    background: `radial-gradient(ellipse, rgba(255,46,84,${sGlowPulse ? 0.3 : 0.15}) 0%, transparent 70%)`,
+                    transition: 'background 1.5s ease',
+                    animation: 'float-cloud-3 10s ease-in-out infinite alternate',
+                  }} />
+                </div>
 
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6vw' }}>
                   <div style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1441,8 +1469,26 @@ export default function HeroSection() {
                 zIndex: 2,
                 pointerEvents: sTransitionOut ? 'auto' : 'none',
               }}>
+                {/* Colorful cloud transition background for Screen 3 (No blur for performance) */}
+                <div className="hidden sm:block" style={{
+                  position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: -1,
+                  opacity: sTransitionOut ? 1 : 0,
+                  transition: 'opacity 1.5s ease',
+                }}>
+                  <div style={{
+                    position: 'absolute', top: '10%', left: '10%', width: '80vw', height: '80vh',
+                    background: `radial-gradient(circle at 40% 40%, ${sPrev ? sPrev.accent : sBeat.accent}30 0%, transparent 60%)`,
+                    transition: 'background 1.5s ease',
+                  }} />
+                  <div style={{
+                    position: 'absolute', bottom: '0%', right: '10%', width: '90vw', height: '70vh',
+                    background: `radial-gradient(circle at 60% 60%, ${sBeat.accent}25 0%, transparent 60%)`,
+                    transition: 'background 1s ease',
+                  }} />
+                </div>
+
                 {/* Ambient top line */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent 0%, ${sBeat.accent}22 30%, ${sBeat.accent}55 50%, ${sBeat.accent}22 70%, transparent 100%)`, transition: 'background 1.2s ease' }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent 0%, ${sBeat.accent}33 30%, ${sBeat.accent}88 50%, ${sBeat.accent}33 70%, transparent 100%)`, transition: 'background 1.2s ease' }} />
 
                 {/* Beat counter rail */}
                 <div style={{ position: 'absolute', right: '6vw', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
@@ -1542,6 +1588,11 @@ export default function HeroSection() {
           transform: scale(1.8); transform-origin: center center;
           overflow: hidden;
         }
+        @media (max-width: 767px) {
+          .hero-video-wrap {
+            transform: scale(1.15);
+          }
+        }
         .hero-grain {
           position: absolute; inset: 0; pointer-events: none; opacity: 0.032;
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
@@ -1555,6 +1606,18 @@ export default function HeroSection() {
           60% {background-position:15px 0}   70% {background-position:0 15px}
           80% {background-position:3px 35px} 90% {background-position:-10px 10px}
           100%{background-position:0 0}
+        }
+        @keyframes float-cloud-1 {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(10%, 15%) scale(1.1); }
+        }
+        @keyframes float-cloud-2 {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(-10%, -15%) scale(1.1); }
+        }
+        @keyframes float-cloud-3 {
+          0% { transform: translateX(-50%) scale(1); }
+          100% { transform: translateX(-45%) scale(1.05); }
         }
         .hero-golden-veil {
           position: absolute; inset: 0; pointer-events: none;

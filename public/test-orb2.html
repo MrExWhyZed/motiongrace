@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { background: #020208; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+  @keyframes orb-spin { 100% { transform: rotate(360deg); } }
+  @keyframes orb-pulse { 50% { transform: scale(1.02); } }
+</style>
+</head>
+<body>
+  <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+    <svg viewBox="0 0 1000 1000" style="width: 120vmin; height: 120vmin; overflow: visible;">
+      <defs>
+        <filter id="orb-noise" x="-30%" y="-30%" width="160%" height="160%">
+          <!-- Very smooth noise for large waves -->
+          <feTurbulence type="fractalNoise" baseFrequency="0.003" numOctaves="2" result="noise">
+            <animate attributeName="baseFrequency" values="0.003;0.005;0.003" dur="20s" repeatCount="indefinite" />
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="120" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+          
+          <!-- Multiple glows for inverse-square light falloff -->
+          <feGaussianBlur in="displaced" stdDeviation="4" result="glow1" />
+          <feGaussianBlur in="displaced" stdDeviation="15" result="glow2" />
+          <feGaussianBlur in="displaced" stdDeviation="40" result="glow3" />
+          <feGaussianBlur in="displaced" stdDeviation="80" result="glow4" />
+          
+          <feMerge>
+            <feMergeNode in="glow4" />
+            <feMergeNode in="glow3" />
+            <feMergeNode in="glow2" />
+            <feMergeNode in="glow1" />
+            <feMergeNode in="displaced" />
+          </feMerge>
+        </filter>
+
+        <linearGradient id="orb-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#9c43fe" />
+          <stop offset="50%" stopColor="#4cc2e9" />
+          <stop offset="100%" stopColor="#101499" />
+        </linearGradient>
+      </defs>
+      
+      <g filter="url(#orb-noise)">
+        <g style="transform-origin: 500px 500px; animation: orb-spin 20s linear infinite;">
+          <!-- Crisp core -->
+          <circle cx="500" cy="500" r="350" fill="none" stroke="url(#orb-grad)" stroke-width="3" />
+          <!-- Inner body -->
+          <circle cx="500" cy="500" r="350" fill="none" stroke="url(#orb-grad)" stroke-width="12" opacity="0.6" />
+          <!-- Thick aura -->
+          <circle cx="500" cy="500" r="350" fill="none" stroke="url(#orb-grad)" stroke-width="40" opacity="0.2" />
+        </g>
+      </g>
+    </svg>
+  </div>
+</body>
+</html>

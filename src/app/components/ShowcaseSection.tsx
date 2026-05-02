@@ -39,9 +39,33 @@ const showcaseItems = [
     alt: 'Gel pour video',
     accent: '#34D399', accentRgb: '52,211,153', depth: 2,
   },
+  {
+    id: 6,
+    image: 'https://res.cloudinary.com/ddgyx80f6/image/upload/v1777298360/Exploded_003_ynbnau.gif',
+    mediaType: 'gif' as const,
+    alt: 'Exploded product view 2',
+    accent: '#C9A96E', accentRgb: '201,169,110', depth: 0,
+  },
+  {
+    id: 7,
+    image: 'https://res.cloudinary.com/ddgyx80f6/video/upload/v1777297860/Lipstick_ymuas8.mp4',
+    mediaType: 'video' as const,
+    alt: 'Lipstick product video 2',
+    accent: '#E879A0', accentRgb: '232,121,160', depth: 1,
+  },
 ];
 
 type Item = typeof showcaseItems[0];
+
+const collageLayouts = [
+  { left: '50%', top: '50%', zIndex: 20, w: '340px', h: '420px', delay: '0s' },
+  { left: '32%', top: '30%', zIndex: 10, w: '240px', h: '300px', delay: '-1.2s' },
+  { left: '68%', top: '28%', zIndex: 15, w: '220px', h: '280px', delay: '-2.5s' },
+  { left: '70%', top: '72%', zIndex: 30, w: '280px', h: '340px', delay: '-3.5s' },
+  { left: '85%', top: '50%', zIndex: 10, w: '240px', h: '300px', delay: '-4.8s' },
+  { left: '30%', top: '75%', zIndex: 30, w: '260px', h: '320px', delay: '-5.2s' },
+  { left: '15%', top: '52%', zIndex: 10, w: '220px', h: '280px', delay: '-6.0s' },
+];
 
 
 // ─── MediaBackground ──────────────────────────────────────────────────────────
@@ -145,50 +169,37 @@ const MediaBackground = React.memo(function MediaBackground({
 
 // ─── ShowcaseCard ─────────────────────────────────────────────────────────────
 const ShowcaseCard = React.memo(function ShowcaseCard({
-  item, index, gsapRef, onEnter, onLeave,
+  item, index, gsapRef, onEnter, onLeave, layout
 }: {
   item: Item;
   index: number;
   gsapRef: React.MutableRefObject<typeof import('gsap').gsap | null>;
   onEnter: (id: number, wrapperEl: HTMLElement) => void;
   onLeave:  (wrapperEl: HTMLElement) => void;
+  layout: typeof collageLayouts[0];
 }) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const cardRef    = useRef<HTMLDivElement>(null);
-  const mediaRef   = useRef<HTMLVideoElement | HTMLImageElement | null>(null);
-  // active drives MediaBackground play/pause directly — no parent video juggling needed
+  const outerRef     = useRef<HTMLDivElement>(null);
+  const wrapperRef   = useRef<HTMLDivElement>(null);
+  const cardRef      = useRef<HTMLDivElement>(null);
+  const mediaRef     = useRef<HTMLVideoElement | HTMLImageElement | null>(null);
   const [active, setActive] = useState(false);
 
-  const floatAmplitude = [22, 34, 44][item.depth];
-  const floatDuration  = [5.5, 6.8, 5.0][item.depth];
-  const floatDelay     = -(index % 5) * 0.9;
-
-  // ── GSAP hover-in: scale up + activate media ────────────────────────────
   const playHoverIn = useCallback(() => {
     const g = gsapRef.current;
-    if (!g || !wrapperRef.current || !cardRef.current) return;
+    if (!g || !wrapperRef.current) return;
     setActive(true);
     g.to(wrapperRef.current, {
-      width: 'clamp(480px,46vw,620px)',
-      duration: 0.65, ease: 'power3.out', overwrite: 'auto',
-    });
-    g.to(cardRef.current, {
-      height: 'clamp(420px,55vw,560px)',
+      scale: 1.45,
       duration: 0.65, ease: 'power3.out', overwrite: 'auto',
     });
   }, [gsapRef]);
 
-  // ── GSAP hover-out: shrink + deactivate media ───────────────────────────
   const playHoverOut = useCallback(() => {
     const g = gsapRef.current;
-    if (!g || !wrapperRef.current || !cardRef.current) return;
+    if (!g || !wrapperRef.current) return;
     setActive(false);
     g.to(wrapperRef.current, {
-      width: 'clamp(260px,26vw,340px)',
-      duration: 0.6, ease: 'power3.out', overwrite: 'auto',
-    });
-    g.to(cardRef.current, {
-      height: 'clamp(340px,44vw,460px)',
+      scale: 1,
       duration: 0.6, ease: 'power3.out', overwrite: 'auto',
     });
   }, [gsapRef]);
@@ -201,40 +212,52 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
 
   return (
     <div
-      ref={wrapperRef}
-      data-showcase-wrapper="true"
-      onMouseEnter={() => onEnter(item.id, wrapperRef.current!)}
-      onMouseLeave={() => onLeave(wrapperRef.current!)}
+      ref={outerRef}
       style={{
-        flexShrink: 0,
-        width: 'clamp(260px,26vw,340px)',
-        contain: 'layout style',
-        transform: 'translateZ(0)',
-        zIndex: 1, position: 'relative',
-        animation: `card-float ${floatDuration}s ease-in-out infinite`,
-        animationDelay: `${floatDelay}s`,
-        ['--float-y' as any]: `${floatAmplitude}px`,
+        position: 'absolute',
+        left: layout.left,
+        top: layout.top,
+        transform: 'translate(-50%, -50%)',
+        zIndex: active ? 50 : layout.zIndex,
       }}
     >
-      <div
-        ref={cardRef}
+      <div 
+        className="showcase-float"
         style={{
-          position: 'relative', borderRadius: '18px', overflow: 'hidden',
-          height: 'clamp(340px,44vw,460px)',
-          border: `1px solid rgba(${item.accentRgb},0.09)`,
-          boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
-          isolation: 'isolate',
-          // Smooth scale hint for GPU — only on the card, not every wrapper
-          willChange: 'width, height',
+          animationDelay: layout.delay,
         }}
       >
-        <MediaBackground item={item} mediaRef={mediaRef} active={active} />
-        {/* Subtle radial vignette to give depth without extra layers */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.5) 100%)',
-          pointerEvents: 'none', zIndex: 2,
-        }} />
+        <div
+          ref={wrapperRef}
+          data-showcase-wrapper="true"
+          onMouseEnter={() => onEnter(item.id, wrapperRef.current!)}
+          onMouseLeave={() => onLeave(wrapperRef.current!)}
+          style={{
+            width: layout.w,
+            contain: 'layout style',
+            transform: 'translateZ(0)',
+            position: 'relative',
+            willChange: 'transform',
+          }}
+        >
+          <div
+            ref={cardRef}
+            style={{
+              position: 'relative', borderRadius: '24px', overflow: 'hidden',
+              height: layout.h, width: '100%',
+              border: `1px solid rgba(${item.accentRgb},0.09)`,
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
+              isolation: 'isolate',
+            }}
+          >
+            <MediaBackground item={item} mediaRef={mediaRef} active={active} />
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.5) 100%)',
+              pointerEvents: 'none', zIndex: 2,
+            }} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -388,7 +411,6 @@ function MobileCarousel() {
 // ─── ShowcaseSection ──────────────────────────────────────────────────────────
 export default function ShowcaseSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const trackRef   = useRef<HTMLDivElement>(null);
   const headerRef  = useRef<HTMLDivElement>(null);
   const btnRef     = useRef<HTMLDivElement>(null);
 
@@ -397,26 +419,11 @@ export default function ShowcaseSection() {
   const hoveredWrapperRef = useRef<HTMLElement | null>(null);
   const pendingIdRef      = useRef<number | null>(null);
   const switchTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const leaveTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null); // NEW: track leave timer separately
-
-  const animFrameRef  = useRef<number>(0);
-  const currentXRef   = useRef(0);
-  const targetXRef    = useRef(0);
-  const isPausedRef   = useRef(false);
-  const velocityRef   = useRef(1);
-  const arrowSpeedRef = useRef(0);
-  const holdLRef      = useRef(false);
-  const holdRRef      = useRef(false);
+  const leaveTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [sectionVisible, setSectionVisible] = useState(false);
-  const [leftActive,  setLeftActive]  = useState(false);
-  const [rightActive, setRightActive] = useState(false);
 
   const handleEnter = useCallback((id: number, wrapperEl: HTMLElement) => {
-    // FIX: pause carousel immediately
-    isPausedRef.current = true;
-
-    // Clear any pending leave timer — we're hovering again
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current);
       leaveTimerRef.current = null;
@@ -425,12 +432,8 @@ export default function ShowcaseSection() {
     pendingIdRef.current = id;
     if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
 
-    // FIX card-to-card flicker: fire hoverOut on prev and hoverIn on next in
-    // the same synchronous call. The old 28 ms setTimeout left both cards in
-    // their resting state for ~2 frames, causing a visible flash.
     const g = gsapRef.current;
     if (!g) {
-      // gsap not ready yet — tiny one-frame retry, no visible delay
       switchTimerRef.current = setTimeout(() => {
         const g2 = gsapRef.current;
         if (!g2) return;
@@ -455,7 +458,6 @@ export default function ShowcaseSection() {
   }, []);
 
   const handleLeave = useCallback((_wrapperEl: HTMLElement) => {
-    // Clear any pending enter timer
     if (switchTimerRef.current) {
       clearTimeout(switchTimerRef.current);
       switchTimerRef.current = null;
@@ -463,13 +465,11 @@ export default function ShowcaseSection() {
     
     pendingIdRef.current = null;
     
-    // FIX #2: Clear existing leave timer to prevent race conditions
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current);
     }
     
     leaveTimerRef.current = setTimeout(() => {
-      // Guard: Only proceed if no new card is pending
       if (pendingIdRef.current !== null) return;
       
       if (hoveredWrapperRef.current) {
@@ -477,13 +477,6 @@ export default function ShowcaseSection() {
         if (hoverOut) hoverOut();
       }
       hoveredWrapperRef.current = null;
-      
-      setTimeout(() => {
-        if (!hoveredWrapperRef.current && !pendingIdRef.current) {
-          isPausedRef.current = false;
-        }
-      }, 50);
-      
       leaveTimerRef.current = null;
     }, 40);
   }, []);
@@ -523,85 +516,11 @@ export default function ShowcaseSection() {
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    const BASE = 0.42, AMAX = 6, AACC = 0.18, ADEC = 0.88;
-    let last = 0, inView = true;
-    const observer = new IntersectionObserver(
-      ([entry]) => { inView = entry.isIntersecting; }, { threshold: 0 }
-    );
-    if (trackRef.current) observer.observe(trackRef.current);
-
-    const loop = (t: number) => {
-      animFrameRef.current = requestAnimationFrame(loop);
-      if (document.hidden || !inView) return;
-      const dt = Math.min(t - last, 50); last = t;
-      if (!trackRef.current) return;
-      const tw = trackRef.current.scrollWidth / 2;
-
-      if      (holdRRef.current) arrowSpeedRef.current = Math.min(arrowSpeedRef.current + AACC,  AMAX);
-      else if (holdLRef.current) arrowSpeedRef.current = Math.max(arrowSpeedRef.current - AACC, -AMAX);
-      else {
-        arrowSpeedRef.current *= ADEC;
-        if (Math.abs(arrowSpeedRef.current) < 0.02) arrowSpeedRef.current = 0;
-      }
-      velocityRef.current = isPausedRef.current
-        ? Math.max(velocityRef.current - 0.05, 0)
-        : Math.min(velocityRef.current + 0.02, 1);
-
-      targetXRef.current  = (targetXRef.current + BASE * (dt/16) * velocityRef.current + arrowSpeedRef.current * (dt/16) + tw) % tw;
-      currentXRef.current += (targetXRef.current - currentXRef.current) * 0.07;
-      if (currentXRef.current < 0) currentXRef.current += tw;
-      trackRef.current.style.transform = `translateX(-${currentXRef.current}px)`;
-    };
-    animFrameRef.current = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(animFrameRef.current); observer.disconnect(); };
-  }, []);
-
-  const startLeft  = useCallback(() => { holdLRef.current = true;  holdRRef.current = false; setLeftActive(true);  setRightActive(false); }, []);
-  const startRight = useCallback(() => { holdRRef.current = true;  holdLRef.current = false; setRightActive(true); setLeftActive(false);  }, []);
-  const stopArrows = useCallback(() => { holdLRef.current = false; holdRRef.current = false; setLeftActive(false); setRightActive(false); }, []);
-
-  const allItems = [...showcaseItems, ...showcaseItems];
-
-  const ArrowBtn = ({ dir }: { dir: 'left' | 'right' }) => {
-    const isLeft = dir === 'left', isActive = isLeft ? leftActive : rightActive;
-    return (
-      <button
-        onMouseDown={isLeft ? startLeft : startRight}
-        onMouseUp={stopArrows} onMouseLeave={stopArrows}
-        onTouchStart={e => { e.preventDefault(); isLeft ? startLeft() : startRight(); }}
-        onTouchEnd={stopArrows}
-        aria-label={isLeft ? 'Scroll left' : 'Scroll right'}
-        style={{
-          position:'absolute', top:'50%', [isLeft ? 'left' : 'right']:'16px',
-          zIndex:30, width:'48px', height:'48px', borderRadius:'50%',
-          border:`1px solid rgba(201,169,110,${isActive ? 0.6 : 0.2})`,
-          background: isActive ? 'rgba(201,169,110,0.15)' : 'rgba(8,10,22,0.7)',
-          backdropFilter:'blur(12px)', cursor:'pointer',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          transition:'border-color 0.2s, background 0.2s, box-shadow 0.2s',
-          transform:`translateY(-50%) scale(${isActive ? 0.93 : 1})`,
-          boxShadow: isActive
-            ? '0 0 24px rgba(201,169,110,0.25),inset 0 0 12px rgba(201,169,110,0.08)'
-            : '0 4px 20px rgba(0,0,0,0.5)',
-          userSelect:'none', WebkitUserSelect:'none',
-        }}
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          {isLeft
-            ? <path d="M11 4L6 9L11 14" stroke={`rgba(201,169,110,${isActive ? 1 : 0.6})`} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            : <path d="M7 4L12 9L7 14"  stroke={`rgba(201,169,110,${isActive ? 1 : 0.6})`} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          }
-        </svg>
-      </button>
-    );
-  };
-
   return (
     <section
       ref={sectionRef}
       data-gsap-section="default"
-      className="relative overflow-hidden py-28 sm:py-40"
+      className="relative overflow-hidden pt-12 pb-20 sm:py-40"
       style={{ background: 'linear-gradient(180deg, #020208 0%, #04040c 50%, #030309 100%)' }}
     >
       {/* Background streaks */}
@@ -655,28 +574,20 @@ export default function ShowcaseSection() {
         <span style={{ fontSize:'9px', letterSpacing:'0.28em', textTransform:'uppercase', color:'rgba(237,233,227,0.4)' }}>Catalog</span>
       </div>
 
-      {/* ── Desktop carousel ── */}
-      <div className="hidden sm:block" style={{ position:'relative' }}>
-        <ArrowBtn dir="left" />
-        <ArrowBtn dir="right" />
-        <div style={{
-          position:'relative', width:'100%', overflow:'hidden',
-          maskImage:'linear-gradient(90deg,transparent 0%,black 8%,black 92%,transparent 100%)',
-          WebkitMaskImage:'linear-gradient(90deg,transparent 0%,black 8%,black 92%,transparent 100%)',
-          paddingTop:'80px', paddingBottom:'96px',
-        }}>
-          <div ref={trackRef} style={{ display:'flex', gap:'14px', paddingLeft:'24px', willChange:'transform', alignItems:'center' }}>
-            {allItems.map((item, i) => (
-              <ShowcaseCard
-                key={`${item.id}-${i}`}
-                item={item}
-                index={i}
-                gsapRef={gsapRef}
-                onEnter={handleEnter}
-                onLeave={handleLeave}
-              />
-            ))}
-          </div>
+      {/* ── Desktop collage ── */}
+      <div className="hidden sm:block" style={{ position: 'relative', width: '100%', height: '800px', marginTop: '40px', marginBottom: '100px' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '1200px', height: '100%', margin: '0 auto' }}>
+          {showcaseItems.map((item, i) => (
+            <ShowcaseCard
+              key={`${item.id}-${i}`}
+              item={item}
+              index={i}
+              layout={collageLayouts[i]}
+              gsapRef={gsapRef}
+              onEnter={handleEnter}
+              onLeave={handleLeave}
+            />
+          ))}
         </div>
       </div>
 
@@ -712,16 +623,18 @@ export default function ShowcaseSection() {
       <style>{`
         @keyframes streak    { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
         @keyframes dot-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.7); } }
-        @keyframes card-float {
-          0%,100% { transform: translateZ(0) translateY(0px); }
-          50%     { transform: translateZ(0) translateY(calc(-1 * var(--float-y))); }
+        .showcase-float { animation: float-up 6s ease-in-out infinite; }
+        @keyframes float-up {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+          100% { transform: translateY(0px); }
         }
-        [data-showcase-wrapper="true"]:hover { animation-play-state: paused; }
+        .showcase-float:hover { animation-play-state: paused; }
         .mobile-carousel-track::-webkit-scrollbar { display: none; }
         /* Disable float animation on touch devices — 10 concurrent CSS animations
            with composite transforms cause scroll jank on Snapdragon 7s Gen 3 */
         @media (hover: none), (pointer: coarse) {
-          [data-showcase-wrapper="true"] { animation: none !important; }
+          .showcase-float { animation: none !important; transform: none !important; }
         }
       `}</style>
     </section>

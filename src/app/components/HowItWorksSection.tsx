@@ -346,14 +346,14 @@ export default function HowItWorksSection() {
           .hiw-grid {
             display: flex !important;
             flex-direction: column !important;
-            gap: 1px !important;
+            gap: 16px !important;
             width: calc(100vw - 32px) !important;
             height: auto !important;
             border-radius: 20px !important;
             overflow: hidden !important;
-            border: 1px solid rgba(237,233,227,0.06) !important;
+            border: none !important;
             position: relative !important;
-            background: rgba(237,233,227,0.04) !important;
+            background: transparent !important;
           }
           .hiw-grid-divider-v { display: none !important; }
           .hiw-grid-divider-h { display: none !important; }

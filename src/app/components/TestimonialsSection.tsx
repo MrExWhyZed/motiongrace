@@ -93,7 +93,7 @@ function TestimonialCard({ t }: { t: typeof testimonials[0] }) {
     <div
       style={{
         flexShrink: 0,
-        width: '360px',
+        width: 'clamp(280px, 85vw, 360px)',
         background: 'rgba(255,255,255,0.022)',
         border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: '20px',
@@ -180,15 +180,33 @@ function MarqueeRow({ items, reverse = false }: { items: typeof testimonials; re
     const cardWidth = 376;
     const totalWidth = items.length * cardWidth;
 
+    let isVisible = false;
+
     function tick() {
+      if (!isVisible) return;
       x += speed;
       if (!reverse && x <= -totalWidth) x = 0;
       if (reverse && x >= 0) x = -totalWidth;
       track.style.transform = `translateX(${x}px)`;
       raf = requestAnimationFrame(tick);
     }
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+
+    const io = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      if (isVisible) {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(tick);
+      } else {
+        cancelAnimationFrame(raf);
+      }
+    }, { threshold: 0 });
+
+    io.observe(track);
+
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, [items, reverse]);
 
   const doubled = [...items, ...items];

@@ -295,10 +295,19 @@ export default function OrbBackground({
     let rafId: number;
     // Low-end: target ~30 fps by skipping every other frame
     let frameCount = 0;
+    let isVisible = true;
+    let justResumed = false;
+
     const update = (t: number) => {
+      if (!isVisible) return;
       rafId = requestAnimationFrame(update);
       frameCount++;
       if (lowEnd && frameCount % 2 !== 0) return; // skip odd frames on low-end
+
+      if (justResumed) {
+        lastTime = t;
+        justResumed = false;
+      }
 
       const dt = (t - lastTime) * 0.001;
       lastTime = t;
@@ -317,9 +326,20 @@ export default function OrbBackground({
 
       renderer.render({ scene: mesh });
     };
-    rafId = requestAnimationFrame(update);
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      if (isVisible) {
+        justResumed = true;
+        cancelAnimationFrame(rafId); // prevent multiple loops
+        rafId = requestAnimationFrame(update);
+      } else {
+        cancelAnimationFrame(rafId);
+      }
+    }, { threshold: 0 });
+    observer.observe(container);
 
     return () => {
+      observer.disconnect();
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', handleMouseMove);

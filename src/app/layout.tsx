@@ -41,8 +41,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} dark`}>
-      <body className={inter.className}>
+    <html lang="en" className={`${inter.variable} dark`} suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         <SmoothScroll />
         {children}
         <HomeRouteTransition />
