@@ -221,42 +221,35 @@ const ShowcaseCard = React.memo(function ShowcaseCard({
         zIndex: active ? 50 : layout.zIndex,
       }}
     >
-      <div 
-        className="showcase-float"
+      <div
+        ref={wrapperRef}
+        data-showcase-wrapper="true"
+        onMouseEnter={() => onEnter(item.id, wrapperRef.current!)}
+        onMouseLeave={() => onLeave(wrapperRef.current!)}
         style={{
-          animationDelay: layout.delay,
+          width: layout.w,
+          contain: 'layout style',
+          transform: 'translateZ(0)',
+          position: 'relative',
+          willChange: 'transform',
         }}
       >
         <div
-          ref={wrapperRef}
-          data-showcase-wrapper="true"
-          onMouseEnter={() => onEnter(item.id, wrapperRef.current!)}
-          onMouseLeave={() => onLeave(wrapperRef.current!)}
+          ref={cardRef}
           style={{
-            width: layout.w,
-            contain: 'layout style',
-            transform: 'translateZ(0)',
-            position: 'relative',
-            willChange: 'transform',
+            position: 'relative', borderRadius: '24px', overflow: 'hidden',
+            height: layout.h, width: '100%',
+            border: `1px solid rgba(${item.accentRgb},0.09)`,
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
+            isolation: 'isolate',
           }}
         >
-          <div
-            ref={cardRef}
-            style={{
-              position: 'relative', borderRadius: '24px', overflow: 'hidden',
-              height: layout.h, width: '100%',
-              border: `1px solid rgba(${item.accentRgb},0.09)`,
-              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
-              isolation: 'isolate',
-            }}
-          >
-            <MediaBackground item={item} mediaRef={mediaRef} active={active} />
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.5) 100%)',
-              pointerEvents: 'none', zIndex: 2,
-            }} />
-          </div>
+          <MediaBackground item={item} mediaRef={mediaRef} active={active} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,2,8,0.5) 100%)',
+            pointerEvents: 'none', zIndex: 2,
+          }} />
         </div>
       </div>
     </div>
@@ -623,19 +616,7 @@ export default function ShowcaseSection() {
       <style>{`
         @keyframes streak    { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
         @keyframes dot-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.7); } }
-        .showcase-float { animation: float-up 6s ease-in-out infinite; }
-        @keyframes float-up {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-          100% { transform: translateY(0px); }
-        }
-        .showcase-float:hover { animation-play-state: paused; }
         .mobile-carousel-track::-webkit-scrollbar { display: none; }
-        /* Disable float animation on touch devices — 10 concurrent CSS animations
-           with composite transforms cause scroll jank on Snapdragon 7s Gen 3 */
-        @media (hover: none), (pointer: coarse) {
-          .showcase-float { animation: none !important; transform: none !important; }
-        }
       `}</style>
     </section>
   );
