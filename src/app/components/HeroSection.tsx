@@ -1002,7 +1002,7 @@ export default function HeroSection() {
         {/* ── Hero Content ──────────────────────────────────────── */}
         <div
           ref={contentRef}
-          className="hero-content relative z-20 mx-auto flex max-w-6xl flex-col items-center px-6 pb-24 pt-32 text-center sm:px-10">
+          className="hero-content relative z-20 mx-auto flex max-w-6xl flex-col items-center px-6 pb-20 pt-24 text-center sm:px-10">
 
           <div ref={heroHeadlineRef} className="hero-copy-lockup">
             <div className="hero-kicker">
@@ -1600,10 +1600,10 @@ export default function HeroSection() {
           margin: 0;
           max-width: 1120px;
           font-family: var(--font-space-grotesk), sans-serif;
-          font-size: clamp(4.25rem, 10.8vw, 9.6rem);
+          font-size: clamp(3.5rem, 9vw, 8.5rem);
           font-weight: 900;
           letter-spacing: 0;
-          line-height: 0.82;
+          line-height: 0.85;
           text-align: center;
           text-wrap: balance;
           color: #fff;
@@ -1626,8 +1626,8 @@ export default function HeroSection() {
           width: 100%;
           display: flex;
           justify-content: center;
-          margin-top: 1.9rem;
-          margin-bottom: 1.55rem;
+          margin-top: 1.4rem;
+          margin-bottom: 1.25rem;
         }
         .hero-premium-subline {
           margin: 0;
@@ -1815,11 +1815,11 @@ export default function HeroSection() {
           .hero-content {
             min-height: 100svh;
             justify-content: center;
-            padding: 6.2rem 1.15rem 7.1rem;
+            padding: 4.5rem 1.15rem 5.5rem;
           }
           .hero-copy-lockup {
             position: relative;
-            gap: 0.82rem;
+            gap: 0.65rem;
           }
           .hero-kicker {
             max-width: 92vw;
@@ -1835,8 +1835,8 @@ export default function HeroSection() {
           }
           .hero-premium-headline {
             width: min(100%, 21rem);
-            font-size: clamp(3.05rem, 15.4vw, 4.55rem);
-            line-height: 0.88;
+            font-size: clamp(2.85rem, 14.2vw, 4.25rem);
+            line-height: 0.9;
             text-shadow:
               0 1px 0 rgba(255,255,255,0.16),
               0 18px 52px rgba(0,0,0,0.52);
@@ -1860,8 +1860,8 @@ export default function HeroSection() {
             padding-left: 0;
           }
           .hero-subcopy-wrap {
-            margin-top: 1.2rem;
-            margin-bottom: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 0.8rem;
           }
           .hero-premium-subline {
             max-width: 19.8rem;
@@ -1872,7 +1872,7 @@ export default function HeroSection() {
           .hero-proof-row {
             width: min(100%, 20rem);
             max-width: 20rem;
-            margin-bottom: 1.18rem;
+            margin-bottom: 0.8rem;
             background: transparent;
             border-top-color: rgba(237,233,227,0.08);
             border-bottom-color: rgba(237,233,227,0.08);
