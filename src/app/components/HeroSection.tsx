@@ -1613,10 +1613,11 @@ export default function HeroSection() {
             0 0 46px rgba(201,89,221,0.24);
         }
         .hero-premium-headline span {
-          display: inline-block;
-          margin: 0 0.025em;
+          display: block;
+          margin: 0;
         }
         .hero-premium-headline span:nth-child(2) {
+          margin: 0.05em 0;
           color: transparent;
           -webkit-text-stroke: 1px rgba(237,233,227,0.78);
           -webkit-text-fill-color: transparent;
