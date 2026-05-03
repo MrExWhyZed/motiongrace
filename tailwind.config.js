@@ -43,6 +43,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ['var(--font-manrope)', 'sans-serif'],
+        display: ['var(--font-space-grotesk)', 'sans-serif'],
       },
       fontSize: {
         'display-xl': ['clamp(2.8rem, 9vw, 7rem)', { lineHeight: '0.95', letterSpacing: '-0.04em' }],

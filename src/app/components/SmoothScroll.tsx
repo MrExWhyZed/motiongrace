@@ -36,8 +36,7 @@ export default function SmoothScroll() {
     /* ─── Mobile: native-scroll optimisations ─── */
     if (isMobile || prefersReduced) {
       (document.documentElement.style as any)['-webkit-overflow-scrolling'] = 'touch';
-      document.body.style.touchAction = 'pan-y';
-      document.body.style.overscrollBehaviorY = 'contain';
+      // Restored natural overscroll and touch-action for smoother mobile experience
       // NOTE: will-change:scroll-position intentionally omitted — on low-RAM
       // devices it promotes the entire page to its own compositor layer and
       // increases memory pressure more than it saves.
@@ -61,10 +60,7 @@ export default function SmoothScroll() {
         })();
       }
 
-      return () => {
-        document.body.style.touchAction = '';
-        document.body.style.overscrollBehaviorY = '';
-      };
+      return () => { };
     }
 
     /* ─── Desktop: Lenis + GSAP ─── */

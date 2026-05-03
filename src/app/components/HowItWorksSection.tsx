@@ -262,6 +262,7 @@ function WorkflowCard({ step, index }: { step: (typeof steps)[0]; index: number 
 /* ── Main Section ── */
 export default function HowItWorksSection() {
   const sectionRef = useRef<HTMLElement>(null);
+  const entryWrapRef = useRef<HTMLDivElement>(null);
   const gridRef    = useRef<HTMLDivElement>(null);
   const gsapCtx    = useRef<any>(null);
 
@@ -276,6 +277,36 @@ export default function HowItWorksSection() {
       gsap.registerPlugin(ScrollTrigger);
 
       gsapCtx.current = gsap.context(() => {
+        // ── Slide-up entry (Process → HowItWorks) ───────────────────────────
+        // The section rises up from slightly below, feeling like a natural
+        // continuation of the page — not a separate section popping in.
+        const entryEl = entryWrapRef.current;
+        if (entryEl && sectionRef.current) {
+          const isMobile = window.matchMedia('(max-width: 1023px)').matches;
+          const yStart = isMobile ? 50 : 80;
+          gsap.set(entryEl, { opacity: 0, y: yStart });
+          ScrollTrigger.create({
+            trigger: sectionRef.current,
+            start: 'top 95%',
+            end: 'top 15%',
+            scrub: isMobile ? 1.4 : 1,
+            onEnter:     () => { entryEl.style.willChange = 'opacity, transform'; },
+            onLeaveBack: () => { entryEl.style.willChange = 'auto'; },
+            onUpdate: (self) => {
+              const p = self.progress;
+              const eased = 1 - Math.pow(1 - p, 2.2);
+              entryEl.style.opacity = String(Math.min(1, eased));
+              entryEl.style.transform = `translateY(${yStart * (1 - eased)}px)`;
+            },
+            onLeave: () => {
+              entryEl.style.willChange = 'auto';
+              entryEl.style.opacity = '1';
+              entryEl.style.transform = 'none';
+            },
+          });
+        }
+
+        // ── Cards stagger reveal ─────────────────────────────────────────────
         const cards = gridRef.current?.querySelectorAll('[data-hiw-card]');
         if (!cards || cards.length === 0) return;
 
@@ -316,6 +347,7 @@ export default function HowItWorksSection() {
         transform: 'translateZ(0)',
       }}
     >
+      <div ref={entryWrapRef} style={{ willChange: 'auto' }}>
       <style>{`
         @media (min-width: 768px) {
           .hiw-section-inner {
@@ -434,6 +466,7 @@ export default function HowItWorksSection() {
           <div className="hiw-grid-divider-h" style={{ position:'absolute', left:0, right:0, top:'50%', height:1, background:'rgba(237,233,227,0.05)', zIndex:10 }} />
         </div>
       </div>
+      </div>{/* end entryWrapRef */}
     </section>
   );
 }

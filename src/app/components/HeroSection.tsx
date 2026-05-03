@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { HERO_READY_EVENT } from './Preloader';
 import OrbBackground from './OrbBackground';
+import { GlassButton } from '@/components/ui/glass-button';
+import { ElegantShape } from '@/components/ui/modern-hero-section';
 
 /* ─── Deterministic particles (SSR-safe) ─────────────────────────────────── */
 const particles = Array.from({ length: 18 }, (_, i) => ({
@@ -14,44 +16,26 @@ const particles = Array.from({ length: 18 }, (_, i) => ({
   duration: 7 + (i % 5) * 1.5,
   color:
     i % 3 === 0
-      ? 'rgba(201,169,110,0.55)'
+      ? 'rgba(147,51,234,0.55)'
       : i % 3 === 1
-      ? 'rgba(74,158,255,0.4)'
-      : 'rgba(237,233,227,0.18)',
+        ? 'rgba(74,158,255,0.4)'
+        : 'rgba(237,233,227,0.18)',
   glow:
     i % 3 === 0
-      ? '0 0 6px rgba(201,169,110,0.7)'
+      ? '0 0 6px rgba(147,51,234,0.7)'
       : i % 3 === 1
-      ? '0 0 5px rgba(74,158,255,0.5)'
-      : 'none',
+        ? '0 0 5px rgba(74,158,255,0.5)'
+        : 'none',
 }));
 // Reduced set for mobile (every 3rd particle only)
 const particlesMobile = particles.filter((_, i) => i % 3 === 0);
 
-/* ─── Cycling subheadlines (typing effect) ───────────────────────────────── */
-const sublines = [
-  'Cinematic CGI. Infinite Possibilities.',
-  'Your Product. Elevated Forever.',
-  'Beyond Reality. Endlessly Reimagined.',
-  'Luxury Visuals. Zero Limits.',
-];
-
-/* ─── Hero headline cycles ────────────────────────────────────────────────── */
-const HEADLINE_HOLD_MS = 4000;
-const HEADLINE_FADE_MS = 800;
-
-/* Timings */
-const VISIBLE_MS  = 2800;
-const FADE_MS     = 700;
-
-type TaglineState = 'entering' | 'visible' | 'leaving';
-
 export default function HeroSection() {
-  const heroRef    = useRef<HTMLElement>(null);
-  const bgRef      = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
   const heroAuraRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const veilRef    = useRef<HTMLDivElement>(null);
+  const veilRef = useRef<HTMLDivElement>(null);
   const heroParticlesRef = useRef<HTMLDivElement>(null);
   const heroRingsRef = useRef<HTMLDivElement>(null);
   const heroLeftWidgetRef = useRef<HTMLDivElement>(null);
@@ -78,7 +62,7 @@ export default function HeroSection() {
     const mobile = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
     setIsMobile(mobile);
     if (!mobile) {
-      const cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+      const cores = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
       const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
       setIsLowEnd(cores <= 4 || memory <= 4);
     }
@@ -111,52 +95,52 @@ export default function HeroSection() {
     window.dispatchEvent(new CustomEvent(HERO_READY_EVENT));
 
     return () => window.removeEventListener('motionGracePreloaderDone', handleDone);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Story overlay state */
-  const [storyOpen,      setStoryOpen]      = useState(false);
-  const [storyVisible,   setStoryVisible]   = useState(false); // controls opacity after mount
-  const [storyExiting,   setStoryExiting]   = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [storyVisible, setStoryVisible] = useState(false); // controls opacity after mount
+  const [storyExiting, setStoryExiting] = useState(false);
   const [viewBtnHovered, setViewBtnHovered] = useState(false);
-  const storyScrollRef   = useRef<HTMLDivElement>(null);
+  const storyScrollRef = useRef<HTMLDivElement>(null);
   const storyScrollContentRef = useRef<HTMLDivElement>(null);
   const storyOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* Story: "The Problem" title phase */
-  const [titlePhase, setTitlePhase] = useState<'hidden'|'in'|'shown'>('hidden');
+  const [titlePhase, setTitlePhase] = useState<'hidden' | 'in' | 'shown'>('hidden');
 
   /* Story: Screen 2 state (mirrors ProblemSection) */
   const SCREEN2_VH_S = 340;
   const STORY_BEATS_S = [
-    { eyebrow: 'Our Role',       headline: 'The invisible\nCGI powerhouse.',         body: 'We act as the invisible CGI powerhouse behind leading creative agencies and modern brands — taking the friction out of high-end production, transforming conceptual ideas into stunning visual experiences.',              accent: '#0894ff' },
-    { eyebrow: 'What We Craft',  headline: 'Every frame,\nengineered.',              body: 'By crafting high-fidelity CGI product animations and design-driven narratives, we deliver scalable assets that transcend the limits of traditional photography. Cinematic storytelling fused with absolute product-focused precision.', accent: '#c959dd' },
-    { eyebrow: 'Why It Matters', headline: 'Motion.\nEmotion.\nInteractivity.',      body: "Today's brands need more than visuals. Our CGI and 3D solutions allow products to be seen, felt, and explored from every angle — directly driving stronger engagement and measurable sales impact.",                    accent: '#ff2e54' },
-    { eyebrow: 'Our Promise',    headline: 'Imagination\nmade precise.',             body: 'From luxurious product commercials to immersive interactive CGI, Motion Grace merges artistic vision with cutting-edge technology — ensuring modern brands stand out in a crowded market.',                                  accent: '#ff9004' },
+    { eyebrow: 'Our Role', headline: 'The invisible\nCGI powerhouse.', body: 'We act as the invisible CGI powerhouse behind leading creative agencies and modern brands — taking the friction out of high-end production, transforming conceptual ideas into stunning visual experiences.', accent: '#0894ff' },
+    { eyebrow: 'What We Craft', headline: 'Every frame,\nengineered.', body: 'By crafting high-fidelity CGI product animations and design-driven narratives, we deliver scalable assets that transcend the limits of traditional photography. Cinematic storytelling fused with absolute product-focused precision.', accent: '#c959dd' },
+    { eyebrow: 'Why It Matters', headline: 'Motion.\nEmotion.\nInteractivity.', body: "Today's brands need more than visuals. Our CGI and 3D solutions allow products to be seen, felt, and explored from every angle — directly driving stronger engagement and measurable sales impact.", accent: '#ff2e54' },
+    { eyebrow: 'Our Promise', headline: 'Imagination\nmade precise.', body: 'From luxurious product commercials to immersive interactive CGI, Motion Grace merges artistic vision with cutting-edge technology — ensuring modern brands stand out in a crowded market.', accent: '#ff9004' },
   ];
-  const STORY_VH_S  = STORY_BEATS_S.length * 220; // 880
-  const TOTAL_VH_S  = SCREEN2_VH_S + STORY_VH_S;  // 1220
-  const S2_FRAC_S   = SCREEN2_VH_S / TOTAL_VH_S;
-  const S3_FRAC_S   = STORY_VH_S   / TOTAL_VH_S;
+  const STORY_VH_S = STORY_BEATS_S.length * 220; // 880
+  const TOTAL_VH_S = SCREEN2_VH_S + STORY_VH_S;  // 1220
+  const S2_FRAC_S = SCREEN2_VH_S / TOTAL_VH_S;
+  const S3_FRAC_S = STORY_VH_S / TOTAL_VH_S;
 
-  const storyCanvasRef    = useRef<HTMLCanvasElement>(null);
-  const storyMouseRef     = useRef({ x: 0.5, y: 0.5 });
-  const storyRafRef       = useRef<number>(0);
+  const storyCanvasRef = useRef<HTMLCanvasElement>(null);
+  const storyMouseRef = useRef({ x: 0.5, y: 0.5 });
+  const storyRafRef = useRef<number>(0);
   const storyGlowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const storyS2RevealRef  = useRef<HTMLDivElement>(null);
-  const storyCombinedRef  = useRef<HTMLDivElement>(null);
+  const storyS2RevealRef = useRef<HTMLDivElement>(null);
+  const storyCombinedRef = useRef<HTMLDivElement>(null);
 
-  const [sWordProgress,  setSWordProgress]  = useState(0);
-  const [sGlowPulse,     setSGlowPulse]     = useState(false);
-  const [sArrowFill,     setSArrowFill]     = useState(0);
-  const [sArrowDone,     setSArrowDone]     = useState(false);
+  const [sWordProgress, setSWordProgress] = useState(0);
+  const [sGlowPulse, setSGlowPulse] = useState(false);
+  const [sArrowFill, setSArrowFill] = useState(0);
+  const [sArrowDone, setSArrowDone] = useState(false);
   const [sTransitionOut, setSTransitionOut] = useState(false);
   const [sStoryProgress, setSStoryProgress] = useState(0);
 
   /* Screen 1 (problem words) state */
-  const [sVisibleLines,  setSVisibleLines]  = useState<boolean[]>(new Array(12).fill(false));
-  const [sDistortLevel,  setSDistortLevel]  = useState(0);
-  const storyScreen1Ref  = useRef<HTMLDivElement>(null);
+  const [sVisibleLines, setSVisibleLines] = useState<boolean[]>(new Array(12).fill(false));
+  const [sDistortLevel, setSDistortLevel] = useState(0);
+  const storyScreen1Ref = useRef<HTMLDivElement>(null);
   const storyEndScrollRef = useRef(0); // counts wheel ticks past the end
 
   /* Lock / unlock main page scroll while overlay is open */
@@ -169,78 +153,6 @@ export default function HeroSection() {
     return () => { document.body.style.overflow = ''; };
   }, [storyOpen]);
 
-  /* Subheading typing state */
-  const [subIndex, setSubIndex]       = useState(0);
-  const [subTyped, setSubTyped]       = useState('');
-  const [subPhase, setSubPhase]       = useState<'typing'|'hold'|'erasing'>('typing');
-  const [taglineIndex, setTaglineIndex] = useState(0);
-  const [taglineState, setTaglineState] = useState<TaglineState>('entering');
-
-  /* Hero headline cycling state */
-  const [hlPhase, setHlPhase] = useState<'motionGrace'|'exitMG'|'createBuild'|'exitCB'>('motionGrace');
-
-
-  /* ── Subheading typing engine ────────────────────────────────────────── */
-  useEffect(() => {
-    if (!heroVisible) return;
-    let t: ReturnType<typeof setTimeout>;
-    const full = sublines[subIndex];
-
-    if (subPhase === 'typing') {
-      if (subTyped.length < full.length) {
-        t = setTimeout(() => setSubTyped(full.slice(0, subTyped.length + 1)), 38);
-      } else {
-        t = setTimeout(() => setSubPhase('hold'), VISIBLE_MS);
-      }
-    } else if (subPhase === 'hold') {
-      t = setTimeout(() => setSubPhase('erasing'), 400);
-    } else if (subPhase === 'erasing') {
-      if (subTyped.length > 0) {
-        t = setTimeout(() => setSubTyped(subTyped.slice(0, -1)), 22);
-      } else {
-        const next = (subIndex + 1) % sublines.length;
-        setSubIndex(next);
-        setTaglineIndex(next);
-        setSubPhase('typing');
-      }
-    }
-    return () => clearTimeout(t);
-  }, [heroVisible, subPhase, subTyped, subIndex]);
-
-  /* ── Tagline cycling (kept for dots indicator) ───────────────────────── */
-  useEffect(() => {
-    if (!heroVisible) return;
-    let t: ReturnType<typeof setTimeout>;
-    if (taglineState === 'entering') {
-      t = setTimeout(() => setTaglineState('visible'), FADE_MS);
-    } else if (taglineState === 'visible') {
-      t = setTimeout(() => setTaglineState('leaving'), VISIBLE_MS);
-    } else if (taglineState === 'leaving') {
-      t = setTimeout(() => {
-        setTaglineIndex((prev) => (prev + 1) % sublines.length);
-        setTaglineState('entering');
-      }, FADE_MS);
-    }
-    return () => clearTimeout(t);
-  }, [heroVisible, taglineState]);
-
-  /* ── Hero headline: Motion Grace ↔ Create Once, Build Forever ─────────── */
-  useEffect(() => {
-    if (!heroVisible) return;
-    let t: ReturnType<typeof setTimeout>;
-    // motionGrace → (hold) → exitMG → (fade out MG, fade in CB) → createBuild → (hold) → exitCB → (fade out CB, fade in MG) → motionGrace
-    if (hlPhase === 'motionGrace') {
-      t = setTimeout(() => setHlPhase('exitMG'), HEADLINE_HOLD_MS);
-    } else if (hlPhase === 'exitMG') {
-      t = setTimeout(() => setHlPhase('createBuild'), HEADLINE_FADE_MS);
-    } else if (hlPhase === 'createBuild') {
-      t = setTimeout(() => setHlPhase('exitCB'), HEADLINE_HOLD_MS);
-    } else if (hlPhase === 'exitCB') {
-      t = setTimeout(() => setHlPhase('motionGrace'), HEADLINE_FADE_MS);
-    }
-    return () => clearTimeout(t);
-  }, [heroVisible, hlPhase]);
-
   useEffect(() => {
     if (!heroVisible || !heroRef.current) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -249,23 +161,23 @@ export default function HeroSection() {
     // After the async import resolves, React may have re-rendered and any
     // ref.current could be null. Reading them here guarantees valid (or
     // intentionally null) values that we can guard against safely.
-    const heroHeadlineEl    = heroHeadlineRef.current;
-    const heroSublineEl     = heroSublineRef.current;
-    const heroDotsEl        = heroDotsRef.current;
-    const heroActionsEl     = heroActionsRef.current;
-    const heroStoryEl       = heroStoryRef.current;
-    const heroLeftWidgetEl  = heroLeftWidgetRef.current;
+    const heroHeadlineEl = heroHeadlineRef.current;
+    const heroSublineEl = heroSublineRef.current;
+    const heroDotsEl = heroDotsRef.current;
+    const heroActionsEl = heroActionsRef.current;
+    const heroStoryEl = heroStoryRef.current;
+    const heroLeftWidgetEl = heroLeftWidgetRef.current;
     const heroRightWidgetEl = heroRightWidgetRef.current;
-    const heroAuraEl        = heroAuraRef.current;
-    const heroParticlesEl   = heroParticlesRef.current;
-    const heroRingsEl       = heroRingsRef.current;
-    const heroScrollCueEl   = heroScrollCueRef.current;
-    const bgEl              = bgRef.current;
-    const contentEl         = contentRef.current;
-    const veilEl            = veilRef.current;
+    const heroAuraEl = heroAuraRef.current;
+    const heroParticlesEl = heroParticlesRef.current;
+    const heroRingsEl = heroRingsRef.current;
+    const heroScrollCueEl = heroScrollCueRef.current;
+    const bgEl = bgRef.current;
+    const contentEl = contentRef.current;
+    const veilEl = veilRef.current;
 
     let mounted = true;
-    let cleanup = () => {};
+    let cleanup = () => { };
 
     // Helper: returns a Promise that resolves once SmoothScroll has finished
     // its two-pass refresh (lenisReady event). If Lenis already fired before
@@ -300,65 +212,59 @@ export default function HeroSection() {
         heroRightWidgetEl,
       ].filter(Boolean) as HTMLElement[];
 
-      // Hide children immediately (before paint) so there's no flash
-      // between heroVisible=true rendering and GSAP taking over
-      introTargets.forEach(el => {
-        el.style.opacity = '0';
-        el.style.visibility = 'hidden';
-      });
-
       // Detect tier synchronously inside animation block (isMobile state may lag)
       const _isMobile = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 1024px)').matches;
-      const _cores  = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+      const _cores = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
       const _memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
-      // Skip expensive blur filters on mobile/tablet and low/mid-tier desktops (<= 6 cores or <= 8GB RAM)
       const _isLowEnd = !_isMobile && (_cores <= 6 || _memory <= 8);
       const useHeroBlur = !_isMobile && !_isLowEnd;
 
-      // Run intro tweens immediately — these don't depend on scroll measurements.
-      // ScrollTrigger-dependent tweens run after lenisReady so positions are correct.
       const ctx = gsap.context(() => {
-        gsap.set(introTargets, {
-          autoAlpha: 0,
-          y: 28,
-          ...(useHeroBlur ? { filter: 'blur(10px)' } : {}),
-        });
+        // Only run entrance animations if this is a fresh visit (not SPA nav)
+        const isSPA = sessionStorage.getItem('mg_preloader_done') === '1' || sessionStorage.getItem('mg_preloader_shown') === '1';
 
-        // ── Intro timeline — each target individually guarded against null ──
-        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+        if (!isSPA) {
+          // Use fromTo directly so GSAP manages the initial state automatically
+          const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-        if (heroHeadlineEl) tl.to(heroHeadlineEl, {
-          autoAlpha: 1, y: 0,
-          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
-          duration: _isMobile ? 0.65 : 0.95,
-        });
-        if (heroSublineEl) tl.to(heroSublineEl, {
-          autoAlpha: 1, y: 0,
-          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
-          duration: _isMobile ? 0.5 : 0.72,
-        }, 0.18);
-        if (heroDotsEl) tl.to(heroDotsEl, {
-          autoAlpha: 1, y: 0,
-          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
-          duration: _isMobile ? 0.45 : 0.62,
-        }, 0.34);
-        if (heroActionsEl) tl.to(heroActionsEl, {
-          autoAlpha: 1, y: 0,
-          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
-          duration: _isMobile ? 0.5 : 0.7,
-        }, 0.46);
-        if (heroStoryEl) tl.to(heroStoryEl, {
-          autoAlpha: 1, y: 0,
-          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
-          duration: _isMobile ? 0.5 : 0.7,
-        }, 0.58);
-        const widgetTargets = [heroLeftWidgetEl, heroRightWidgetEl].filter(Boolean) as HTMLElement[];
-        if (widgetTargets.length) tl.to(widgetTargets, {
-          autoAlpha: 1, y: 0,
-          ...(useHeroBlur ? { filter: 'blur(0px)' } : {}),
-          duration: _isMobile ? 0.6 : 0.9,
-          stagger: 0.08,
-        }, 0.22);
+          if (heroHeadlineEl) tl.fromTo(heroHeadlineEl,
+            { autoAlpha: 0, y: 28, ...(useHeroBlur ? { filter: 'blur(10px)' } : {}) },
+            { autoAlpha: 1, y: 0, ...(useHeroBlur ? { filter: 'blur(0px)', clearProps: 'filter' } : {}), duration: _isMobile ? 0.65 : 0.95 }
+          );
+          if (heroSublineEl) tl.fromTo(heroSublineEl,
+            { autoAlpha: 0, y: 28, ...(useHeroBlur ? { filter: 'blur(10px)' } : {}) },
+            { autoAlpha: 1, y: 0, ...(useHeroBlur ? { filter: 'blur(0px)', clearProps: 'filter' } : {}), duration: _isMobile ? 0.5 : 0.72 },
+            0.18
+          );
+          if (heroDotsEl) tl.fromTo(heroDotsEl,
+            { autoAlpha: 0, y: 28, ...(useHeroBlur ? { filter: 'blur(10px)' } : {}) },
+            { autoAlpha: 1, y: 0, ...(useHeroBlur ? { filter: 'blur(0px)', clearProps: 'filter' } : {}), duration: _isMobile ? 0.45 : 0.62 },
+            0.34
+          );
+          if (heroActionsEl) tl.fromTo(heroActionsEl,
+            { autoAlpha: 0, y: 28, ...(useHeroBlur ? { filter: 'blur(10px)' } : {}) },
+            { autoAlpha: 1, y: 0, ...(useHeroBlur ? { filter: 'blur(0px)', clearProps: 'filter' } : {}), duration: _isMobile ? 0.5 : 0.7 },
+            0.46
+          );
+          if (heroStoryEl) tl.fromTo(heroStoryEl,
+            { autoAlpha: 0, y: 28, ...(useHeroBlur ? { filter: 'blur(10px)' } : {}) },
+            { autoAlpha: 1, y: 0, ...(useHeroBlur ? { filter: 'blur(0px)', clearProps: 'filter' } : {}), duration: _isMobile ? 0.5 : 0.7 },
+            0.58
+          );
+          const widgetTargets = [heroLeftWidgetEl, heroRightWidgetEl].filter(Boolean) as HTMLElement[];
+          if (widgetTargets.length) tl.fromTo(widgetTargets,
+            { autoAlpha: 0, y: 28, ...(useHeroBlur ? { filter: 'blur(10px)' } : {}) },
+            { autoAlpha: 1, y: 0, ...(useHeroBlur ? { filter: 'blur(0px)', clearProps: 'filter' } : {}), duration: _isMobile ? 0.6 : 0.9, stagger: 0.08 },
+            0.22
+          );
+        } else {
+          // SPA Navigation: just ensure hero content is visible.
+          // Do NOT kill all ScrollTriggers — that breaks other sections' entrance animations.
+          if (contentEl) gsap.set(contentEl, { opacity: 1, visibility: 'visible' });
+          gsap.set(introTargets, { autoAlpha: 1 });
+        }
+
+
 
         // Skip all continuous repeat:-1 ambient tweens on mobile/low-end —
         // each GSAP tween with repeat:-1 ticks every rAF frame and compounds
@@ -456,7 +362,7 @@ export default function HeroSection() {
       // ScrollTrigger tweens live in their own context so they can be
       // reverted independently if needed, but cleanup still calls ctx.revert()
       // which covers both contexts via the shared hero element scope.
-      gsap.context(() => {
+      ctx.add(() => {
         // Mobile/low-end: skip multi-layer scrub parallax entirely.
         // Each scrubbed tween (yPercent + scale + filter on separate layers) triggers
         // a compositor update every scroll frame — fatal on Snapdragon 7s Gen 3 class.
@@ -547,7 +453,7 @@ export default function HeroSection() {
             }, 0);
           }
         }
-      }, hero);
+      });
 
       cleanup = () => ctx.revert();
     })();
@@ -643,73 +549,73 @@ export default function HeroSection() {
             },
           };
         } else {
-        gsap.set(overlay, { opacity: 0, filter: 'blur(18px)' });
-        gsap.set(scrollInner, { opacity: 0.01, y: 28 });
-        if (closeBtn) gsap.set(closeBtn, { opacity: 0, y: -14 });
-        if (titleBlock) gsap.set(titleBlock, { opacity: 0, y: 44, scale: 0.96, filter: 'blur(14px)' });
-        if (titleHint) gsap.set(titleHint, { opacity: 0, y: 10 });
+          gsap.set(overlay, { opacity: 0, filter: 'blur(18px)' });
+          gsap.set(scrollInner, { opacity: 0.01, y: 28 });
+          if (closeBtn) gsap.set(closeBtn, { opacity: 0, y: -14 });
+          if (titleBlock) gsap.set(titleBlock, { opacity: 0, y: 44, scale: 0.96, filter: 'blur(14px)' });
+          if (titleHint) gsap.set(titleHint, { opacity: 0, y: 10 });
 
-        const tl = gsap.timeline({
-          defaults: { ease: 'power3.out' },
-          onStart: () => {
-            setStoryVisible(true);
-            setStoryFlickerOpacity(1);
-            setTitlePhase('in');
-          },
-          onComplete: () => {
-            setTitlePhase('shown');
-          },
-        });
+          const tl = gsap.timeline({
+            defaults: { ease: 'power3.out' },
+            onStart: () => {
+              setStoryVisible(true);
+              setStoryFlickerOpacity(1);
+              setTitlePhase('in');
+            },
+            onComplete: () => {
+              setTitlePhase('shown');
+            },
+          });
 
-        tl.to(overlay, {
-          opacity: 1,
-          filter: 'blur(0px)',
-          duration: 0.42,
-        })
-          .to(scrollInner, {
+          tl.to(overlay, {
             opacity: 1,
-            y: 0,
-            duration: 0.58,
-          }, 0.06)
-          .to(closeBtn, {
-            opacity: 1,
-            y: 0,
-            duration: 0.45,
-          }, 0.16)
-          .to(titleBlock, {
-            opacity: 1,
-            y: 0,
-            scale: 1,
             filter: 'blur(0px)',
-            duration: 0.9,
-          }, 0.2)
-          .to(titleHint, {
-            opacity: 1,
-            y: 0,
-            duration: 0.5,
-          }, 0.82);
+            duration: 0.42,
+          })
+            .to(scrollInner, {
+              opacity: 1,
+              y: 0,
+              duration: 0.58,
+            }, 0.06)
+            .to(closeBtn, {
+              opacity: 1,
+              y: 0,
+              duration: 0.45,
+            }, 0.16)
+            .to(titleBlock, {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              filter: 'blur(0px)',
+              duration: 0.9,
+            }, 0.2)
+            .to(titleHint, {
+              opacity: 1,
+              y: 0,
+              duration: 0.5,
+            }, 0.82);
 
-        storyAnimationRef.current = {
-          close: () => {
-            setStoryExiting(true);
-            setTitlePhase('hidden');
+          storyAnimationRef.current = {
+            close: () => {
+              setStoryExiting(true);
+              setTitlePhase('hidden');
 
-            gsap.timeline({
-              defaults: { ease: 'power2.inOut' },
-              onComplete: () => {
-                setStoryOpen(false);
-                setStoryExiting(false);
-                setStoryVisible(false);
-                resetStoryMotionState();
-              },
-            })
-              .to(titleHint,   { opacity: 0, y: 8,  duration: 0.2  }, 0)
-              .to(closeBtn,    { opacity: 0, y: -8, duration: 0.22 }, 0)
-              .to(titleBlock,  { opacity: 0, y: 20, scale: 0.98, filter: 'blur(8px)', duration: 0.3 }, 0)
-              .to(scrollInner, { opacity: 0, y: 14, duration: 0.3 }, 0.03)
-              .to(overlay,     { opacity: 0, filter: 'blur(14px)', duration: 0.38, ease: 'power2.in' }, 0.05);
-          },
-        };
+              gsap.timeline({
+                defaults: { ease: 'power2.inOut' },
+                onComplete: () => {
+                  setStoryOpen(false);
+                  setStoryExiting(false);
+                  setStoryVisible(false);
+                  resetStoryMotionState();
+                },
+              })
+                .to(titleHint, { opacity: 0, y: 8, duration: 0.2 }, 0)
+                .to(closeBtn, { opacity: 0, y: -8, duration: 0.22 }, 0)
+                .to(titleBlock, { opacity: 0, y: 20, scale: 0.98, filter: 'blur(8px)', duration: 0.3 }, 0)
+                .to(scrollInner, { opacity: 0, y: 14, duration: 0.3 }, 0.03)
+                .to(overlay, { opacity: 0, filter: 'blur(14px)', duration: 0.38, ease: 'power2.in' }, 0.05);
+            },
+          };
         } // end else (desktop)
       }, storyOverlayRef);
     })();
@@ -749,65 +655,65 @@ export default function HeroSection() {
     ro.observe(canvas);
 
     const SHAPES_S = [
-      { size:90,  x:12, y:20, rotX:25,  rotY:40,  speed:18, depth:'far',  opacity:0.12, color:0 },
-      { size:60,  x:80, y:15, rotX:-15, rotY:55,  speed:22, depth:'far',  opacity:0.10, color:1 },
-      { size:110, x:70, y:60, rotX:35,  rotY:-20, speed:26, depth:'mid',  opacity:0.15, color:2 },
-      { size:45,  x:25, y:72, rotX:-40, rotY:30,  speed:20, depth:'mid',  opacity:0.13, color:0 },
-      { size:75,  x:50, y:40, rotX:20,  rotY:-50, speed:30, depth:'near', opacity:0.18, color:1 },
-      { size:55,  x:88, y:78, rotX:-25, rotY:15,  speed:16, depth:'near', opacity:0.14, color:2 },
-      { size:38,  x:6,  y:50, rotX:50,  rotY:-35, speed:24, depth:'far',  opacity:0.09, color:0 },
-      { size:82,  x:42, y:85, rotX:-10, rotY:60,  speed:19, depth:'mid',  opacity:0.12, color:1 },
-      { size:48,  x:62, y:30, rotX:30,  rotY:-45, speed:28, depth:'near', opacity:0.16, color:2 },
-      { size:66,  x:18, y:88, rotX:-35, rotY:25,  speed:21, depth:'far',  opacity:0.11, color:0 },
-      { size:94,  x:90, y:45, rotX:15,  rotY:-65, speed:17, depth:'mid',  opacity:0.13, color:1 },
-      { size:52,  x:35, y:10, rotX:-20, rotY:45,  speed:23, depth:'near', opacity:0.17, color:2 },
+      { size: 90, x: 12, y: 20, rotX: 25, rotY: 40, speed: 18, depth: 'far', opacity: 0.12, color: 0 },
+      { size: 60, x: 80, y: 15, rotX: -15, rotY: 55, speed: 22, depth: 'far', opacity: 0.10, color: 1 },
+      { size: 110, x: 70, y: 60, rotX: 35, rotY: -20, speed: 26, depth: 'mid', opacity: 0.15, color: 2 },
+      { size: 45, x: 25, y: 72, rotX: -40, rotY: 30, speed: 20, depth: 'mid', opacity: 0.13, color: 0 },
+      { size: 75, x: 50, y: 40, rotX: 20, rotY: -50, speed: 30, depth: 'near', opacity: 0.18, color: 1 },
+      { size: 55, x: 88, y: 78, rotX: -25, rotY: 15, speed: 16, depth: 'near', opacity: 0.14, color: 2 },
+      { size: 38, x: 6, y: 50, rotX: 50, rotY: -35, speed: 24, depth: 'far', opacity: 0.09, color: 0 },
+      { size: 82, x: 42, y: 85, rotX: -10, rotY: 60, speed: 19, depth: 'mid', opacity: 0.12, color: 1 },
+      { size: 48, x: 62, y: 30, rotX: 30, rotY: -45, speed: 28, depth: 'near', opacity: 0.16, color: 2 },
+      { size: 66, x: 18, y: 88, rotX: -35, rotY: 25, speed: 21, depth: 'far', opacity: 0.11, color: 0 },
+      { size: 94, x: 90, y: 45, rotX: 15, rotY: -65, speed: 17, depth: 'mid', opacity: 0.13, color: 1 },
+      { size: 52, x: 35, y: 10, rotX: -20, rotY: 45, speed: 23, depth: 'near', opacity: 0.17, color: 2 },
     ];
-    const ACCENTS_S = ['#C9A96E','#8B7FD4','#4A9EFF'];
-    const drawCube = (cx:number,cy:number,size:number,rotX:number,rotY:number,opacity:number,accent:string) => {
-      const s=size/2, rxi=rotX*Math.PI/180, ryi=rotY*Math.PI/180;
-      const cos=Math.cos, sin=Math.sin;
-      const project=(px:number,py:number,pz:number):[number,number] => {
-        const x1=px*cos(ryi)+pz*sin(ryi), z1=-px*sin(ryi)+pz*cos(ryi);
-        const y2=py*cos(rxi)-z1*sin(rxi), z2=py*sin(rxi)+z1*cos(rxi);
-        const sc=500/(500+z2+200); return [cx+x1*sc, cy+y2*sc];
+    const ACCENTS_S = ['#C9A96E', '#8B7FD4', '#4A9EFF'];
+    const drawCube = (cx: number, cy: number, size: number, rotX: number, rotY: number, opacity: number, accent: string) => {
+      const s = size / 2, rxi = rotX * Math.PI / 180, ryi = rotY * Math.PI / 180;
+      const cos = Math.cos, sin = Math.sin;
+      const project = (px: number, py: number, pz: number): [number, number] => {
+        const x1 = px * cos(ryi) + pz * sin(ryi), z1 = -px * sin(ryi) + pz * cos(ryi);
+        const y2 = py * cos(rxi) - z1 * sin(rxi), z2 = py * sin(rxi) + z1 * cos(rxi);
+        const sc = 500 / (500 + z2 + 200); return [cx + x1 * sc, cy + y2 * sc];
       };
-      const v:[number,number,number][]=[[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s],[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s]];
-      const faces=[[0,1,2,3],[4,5,6,7],[0,1,5,4],[2,3,7,6],[0,3,7,4],[1,2,6,5]];
-      const brightness=[0.55,1.0,0.65,0.45,0.75,0.38];
-      faces.forEach((face,fi) => {
-        const pts=face.map(vi=>project(...v[vi]));
-        ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
-        for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+      const v: [number, number, number][] = [[-s, -s, -s], [s, -s, -s], [s, s, -s], [-s, s, -s], [-s, -s, s], [s, -s, s], [s, s, s], [-s, s, s]];
+      const faces = [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6], [0, 3, 7, 4], [1, 2, 6, 5]];
+      const brightness = [0.55, 1.0, 0.65, 0.45, 0.75, 0.38];
+      faces.forEach((face, fi) => {
+        const pts = face.map(vi => project(...v[vi]));
+        ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
         ctx.closePath();
-        const a0=Math.round(opacity*brightness[fi]*0.55*255).toString(16).padStart(2,'0');
-        const a1=Math.round(opacity*brightness[fi]*0.12*255).toString(16).padStart(2,'0');
-        const grd=ctx.createLinearGradient(pts[0][0],pts[0][1],pts[2][0],pts[2][1]);
-        grd.addColorStop(0,`${accent}${a0}`); grd.addColorStop(1,`${accent}${a1}`);
-        ctx.fillStyle=grd; ctx.fill();
-        ctx.strokeStyle=`${accent}${Math.round(opacity*0.5*255).toString(16).padStart(2,'0')}`;
-        ctx.lineWidth=0.7; ctx.stroke();
+        const a0 = Math.round(opacity * brightness[fi] * 0.55 * 255).toString(16).padStart(2, '0');
+        const a1 = Math.round(opacity * brightness[fi] * 0.12 * 255).toString(16).padStart(2, '0');
+        const grd = ctx.createLinearGradient(pts[0][0], pts[0][1], pts[2][0], pts[2][1]);
+        grd.addColorStop(0, `${accent}${a0}`); grd.addColorStop(1, `${accent}${a1}`);
+        ctx.fillStyle = grd; ctx.fill();
+        ctx.strokeStyle = `${accent}${Math.round(opacity * 0.5 * 255).toString(16).padStart(2, '0')}`;
+        ctx.lineWidth = 0.7; ctx.stroke();
       });
     };
-    const animate=(ts:number)=>{
-      ctx.clearRect(0,0,w,h);
-      const mx=storyMouseRef.current.x, my=storyMouseRef.current.y;
-      SHAPES_S.forEach((shape,i)=>{
-        const t=ts/1000, dFar=shape.depth==='far', dMid=shape.depth==='mid';
-        const mx2=dFar?8:dMid?20:40, my2=dFar?6:dMid?15:30;
-        const px=(shape.x/100)*w+Math.sin(t/shape.speed+i)*30+(mx-0.5)*mx2;
-        const py=(shape.y/100)*h+Math.cos(t/shape.speed+i*1.3)*20+(my-0.5)*my2;
-        const rotX=shape.rotX+Math.sin(t/(shape.speed*0.8)+i)*15+(my-0.5)*25;
-        const rotY=shape.rotY+Math.cos(t/(shape.speed*0.9)+i*0.7)*20+(mx-0.5)*30;
-        drawCube(px,py,shape.size,rotX,rotY,shape.opacity,ACCENTS_S[shape.color]);
+    const animate = (ts: number) => {
+      ctx.clearRect(0, 0, w, h);
+      const mx = storyMouseRef.current.x, my = storyMouseRef.current.y;
+      SHAPES_S.forEach((shape, i) => {
+        const t = ts / 1000, dFar = shape.depth === 'far', dMid = shape.depth === 'mid';
+        const mx2 = dFar ? 8 : dMid ? 20 : 40, my2 = dFar ? 6 : dMid ? 15 : 30;
+        const px = (shape.x / 100) * w + Math.sin(t / shape.speed + i) * 30 + (mx - 0.5) * mx2;
+        const py = (shape.y / 100) * h + Math.cos(t / shape.speed + i * 1.3) * 20 + (my - 0.5) * my2;
+        const rotX = shape.rotX + Math.sin(t / (shape.speed * 0.8) + i) * 15 + (my - 0.5) * 25;
+        const rotY = shape.rotY + Math.cos(t / (shape.speed * 0.9) + i * 0.7) * 20 + (mx - 0.5) * 30;
+        drawCube(px, py, shape.size, rotX, rotY, shape.opacity, ACCENTS_S[shape.color]);
       });
-      storyRafRef.current=requestAnimationFrame(animate);
+      storyRafRef.current = requestAnimationFrame(animate);
     };
-    storyRafRef.current=requestAnimationFrame(animate);
-    const onMouseMove=(e:MouseEvent)=>{
-      storyMouseRef.current={x:e.clientX/window.innerWidth, y:e.clientY/window.innerHeight};
+    storyRafRef.current = requestAnimationFrame(animate);
+    const onMouseMove = (e: MouseEvent) => {
+      storyMouseRef.current = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
     };
-    window.addEventListener('mousemove',onMouseMove,{passive:true});
-    return ()=>{ cancelAnimationFrame(storyRafRef.current); ro.disconnect(); window.removeEventListener('mousemove',onMouseMove); };
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    return () => { cancelAnimationFrame(storyRafRef.current); ro.disconnect(); window.removeEventListener('mousemove', onMouseMove); };
   }, [storyOpen]);
 
   /* ── Story: unified scroll → Screen2 + Screen3 state ────────────────── */
@@ -823,19 +729,19 @@ export default function HeroSection() {
         const rect = storyScreen1Ref.current.getBoundingClientRect();
         const prog = Math.max(0, Math.min(1, 1 - rect.top / window.innerHeight));
         const PROBLEM_WORDS_COUNT = 12;
-        setSVisibleLines(Array.from({length: PROBLEM_WORDS_COUNT}, (_, i) => prog > (i / PROBLEM_WORDS_COUNT) * 0.7));
+        setSVisibleLines(Array.from({ length: PROBLEM_WORDS_COUNT }, (_, i) => prog > (i / PROBLEM_WORDS_COUNT) * 0.7));
         setSDistortLevel(Math.min(prog * 1.5, 1));
       }
 
       const combined = storyCombinedRef.current;
       if (!combined) return;
-      const rect  = combined.getBoundingClientRect();
+      const rect = combined.getBoundingClientRect();
       const total = combined.offsetHeight - window.innerHeight;
       const scrolled = -rect.top;
-      const raw      = Math.max(0, Math.min(1, total > 0 ? scrolled / total : 0));
+      const raw = Math.max(0, Math.min(1, total > 0 ? scrolled / total : 0));
 
       const s2Raw = Math.max(0, Math.min(1, raw / S2_FRAC_S));
-      const wp    = Math.max(0, Math.min(1, s2Raw * 2));
+      const wp = Math.max(0, Math.min(1, s2Raw * 2));
       setSWordProgress(wp);
 
       if (wp > 0.92) {
@@ -933,7 +839,7 @@ export default function HeroSection() {
 
     let mounted = true;
     let rafId = 0;
-    let cleanup = () => {};
+    let cleanup = () => { };
 
     void (async () => {
       const { default: Lenis } = await import('lenis');
@@ -971,30 +877,22 @@ export default function HeroSection() {
   }, [storyOpen]);
 
   /* Story Screen 3 derived values */
-  const S_BEAT_COUNT       = STORY_BEATS_S.length;
-  const S_BEAT_SLICE       = 1 / S_BEAT_COUNT;
-  const sActiveBeat        = Math.min(S_BEAT_COUNT - 1, Math.floor(sStoryProgress / S_BEAT_SLICE));
-  const sLocalRaw          = Math.max(0, Math.min(1, (sStoryProgress - sActiveBeat * S_BEAT_SLICE) / S_BEAT_SLICE));
-  const easeOutExpoS       = (t: number) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
-  const sLocalP            = easeOutExpoS(sLocalRaw);
-  const sPrevBeat          = sActiveBeat - 1;
-  const sBeat              = STORY_BEATS_S[sActiveBeat];
-  const sPrev              = sPrevBeat >= 0 ? STORY_BEATS_S[sPrevBeat] : null;
-  const sHeadlineLines     = sBeat.headline.split('\n');
+  const S_BEAT_COUNT = STORY_BEATS_S.length;
+  const S_BEAT_SLICE = 1 / S_BEAT_COUNT;
+  const sActiveBeat = Math.min(S_BEAT_COUNT - 1, Math.floor(sStoryProgress / S_BEAT_SLICE));
+  const sLocalRaw = Math.max(0, Math.min(1, (sStoryProgress - sActiveBeat * S_BEAT_SLICE) / S_BEAT_SLICE));
+  const easeOutExpoS = (t: number) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+  const sLocalP = easeOutExpoS(sLocalRaw);
+  const sPrevBeat = sActiveBeat - 1;
+  const sBeat = STORY_BEATS_S[sActiveBeat];
+  const sPrev = sPrevBeat >= 0 ? STORY_BEATS_S[sPrevBeat] : null;
+  const sHeadlineLines = sBeat.headline.split('\n');
   const sPrevHeadlineLines = sPrev ? sPrev.headline.split('\n') : [];
-  const sCounterProgress   = (sActiveBeat + sLocalP) / S_BEAT_COUNT;
-
-  /* Tagline CSS class based on state */
-  const tClass =
-    taglineState === 'entering'
-      ? 'tagline-entering'
-      : taglineState === 'visible'
-      ? 'tagline-visible'
-      : 'tagline-leaving';
+  const sCounterProgress = (sActiveBeat + sLocalP) / S_BEAT_COUNT;
 
   return (
     <>
-  
+
 
       {/* ════════════════════════════════════════════════════════════════
           HERO SECTION
@@ -1005,44 +903,70 @@ export default function HeroSection() {
         className="hero-section"
         data-instant={heroVisible ? 'true' : undefined}
         style={{
-          opacity:   heroVisible ? 1 : 0,
+          opacity: heroVisible ? 1 : 0,
           transform: heroVisible ? 'scale(1)' : 'scale(0.97)',
-          filter:    heroVisible ? 'blur(0px)' : 'blur(6px)',
+          filter: heroVisible ? 'blur(0px)' : 'blur(6px)',
         }}>
 
         {/* ── Background Layer — solid black + full-size orb ────── */}
         <div ref={bgRef} className="hero-bg-layer" style={{ top: '-15%', height: '130%', background: '#000' }}>
+          <div className="hero-mobile-preloader-aura" aria-hidden="true" />
+          <div className="hero-mobile-preloader-grid" aria-hidden="true" />
+          <div className="hero-mobile-black-tint" aria-hidden="true" />
 
-          {/* Orb — fills the full layer, exactly like the original w-full h-[700px] */}
-          <div
-            className="absolute pointer-events-none hidden sm:block"
-            style={{ zIndex: 5, inset: 0 }}
-          >
-            <OrbBackground
-              hue={0}
-              hoverIntensity={2}
-              rotateOnHover={true}
-              forceHoverState={false}
-              heroEl={heroRef.current}
+          {/* Elegant Geometric Background */}
+          <div className="absolute inset-0 hidden bg-gradient-to-br from-indigo-500/[0.05] via-transparent to-rose-500/[0.05] blur-3xl sm:block" />
+          <div className="absolute inset-0 hidden overflow-hidden pointer-events-none sm:block" style={{ zIndex: 5 }}>
+            <ElegantShape
+              delay={0.3}
+              width={600}
+              height={140}
+              rotate={12}
+              gradient="from-indigo-500/[0.15]"
+              className="left-[-10%] md:left-[-5%] top-[15%] md:top-[20%]"
             />
+            <ElegantShape
+              delay={0.5}
+              width={500}
+              height={120}
+              rotate={-15}
+              gradient="from-rose-500/[0.15]"
+              className="right-[-5%] md:right-[0%] top-[70%] md:top-[75%]"
+            />
+            <ElegantShape
+              delay={0.4}
+              width={300}
+              height={80}
+              rotate={-8}
+              gradient="from-violet-500/[0.15]"
+              className="left-[5%] md:left-[10%] bottom-[5%] md:bottom-[10%]"
+            />
+            <ElegantShape
+              delay={0.6}
+              width={200}
+              height={60}
+              rotate={20}
+              gradient="from-amber-500/[0.15]"
+              className="right-[15%] md:right-[20%] top-[10%] md:top-[15%]"
+            />
+            <ElegantShape
+              delay={0.7}
+              width={150}
+              height={40}
+              rotate={-25}
+              gradient="from-cyan-500/[0.15]"
+              className="left-[20%] md:left-[25%] top-[5%] md:top-[10%]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/80 pointer-events-none" />
           </div>
 
           <div
             ref={heroAuraRef}
             className="absolute inset-0 z-10 hidden sm:block"
-            style={{ background: 'radial-gradient(ellipse 60% 35% at 50% 0%, rgba(201,169,110,0.10) 0%, transparent 60%)' }}
+            style={{ background: 'radial-gradient(ellipse 60% 35% at 50% 0%, rgba(147,51,234,0.15) 0%, transparent 60%)' }}
           />
 
-          {/* New Mobile Glow using premium purple colors */}
-          <div
-            className="sm:hidden absolute pointer-events-none z-10"
-            style={{
-              top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-              width: '120vw', height: '120vw', borderRadius: '50%',
-              background: 'radial-gradient(circle at center, rgba(168,85,247,0.22) 0%, rgba(147,51,234,0.12) 40%, rgba(88,28,135,0.05) 70%, transparent 100%)',
-              filter: 'blur(60px)',
-            }}
-          />
+
 
           <div className="hero-grain z-20" />
           <div ref={veilRef} className="hero-golden-veil z-20 hidden sm:block" />
@@ -1064,149 +988,86 @@ export default function HeroSection() {
           ))}
         </div>
 
-        {/* ── Decorative Rings ──────────────────────────────────── */}
-        <div ref={heroRingsRef} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 hidden sm:block">
-          <div
-            className="w-[700px] h-[700px] sm:w-[1000px] sm:h-[1000px] rounded-full border border-primary/[0.05]"
-            style={{ borderStyle: 'dashed' }}
-          />
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[460px] h-[460px] sm:w-[700px] sm:h-[700px] rounded-full border border-accent/[0.04]"
-          />
+        <div className="hero-composition-frame" aria-hidden="true">
+          <span className="hero-frame-corner hero-frame-corner-tl" />
+          <span className="hero-frame-corner hero-frame-corner-tr" />
+          <span className="hero-frame-corner hero-frame-corner-bl" />
+          <span className="hero-frame-corner hero-frame-corner-br" />
+          <span className="hero-frame-label hero-frame-label-left">Cinematic CGI</span>
+          <span className="hero-frame-label hero-frame-label-right">Brand Reality System</span>
         </div>
+
+
 
         {/* ── Hero Content ──────────────────────────────────────── */}
         <div
           ref={contentRef}
-          className="relative z-20 max-w-5xl mx-auto px-6 sm:px-10 pt-32 pb-24 flex flex-col items-center text-center will-change-transform">
+          className="hero-content relative z-20 mx-auto flex max-w-6xl flex-col items-center px-6 pb-24 pt-32 text-center sm:px-10">
 
-          {/* ── Cycling Headline: Motion Grace ↔ Create Once, Build Forever ── */}
-          <div
-            ref={heroHeadlineRef}
-            className="mb-4"
-            style={{
-              opacity: 0,
-              position: 'relative',
-              height: 'clamp(3.2rem, 7.5vw, 6rem)',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-
-            {/* Motion Grace */}
-            <h1
-              className={`hl-headline ${
-                hlPhase === 'motionGrace' ? 'hl-visible'    :
-                hlPhase === 'exitMG'      ? 'hl-fade-out'   :
-                                            'hl-hidden'
-              }`}
-              style={{ fontSize: 'clamp(2.4rem, 7vw, 5.5rem)' }}>
-              <span style={{ color: '#ffffff' }}>Motion</span>
-              <span style={{ color: '#ffffff' }}>Grace</span>
-            </h1>
-
-            {/* Create Once, Build Forever */}
-            <h1
-              className={`hl-headline ${
-                hlPhase === 'exitMG'      ? 'hl-fade-in'    :
-                hlPhase === 'createBuild' ? 'hl-visible'    :
-                hlPhase === 'exitCB'      ? 'hl-fade-out'   :
-                                            'hl-hidden'
-              }`}
-              style={{ fontSize: 'clamp(1.55rem, 4.4vw, 3.5rem)', letterSpacing: '-0.025em' }}>
-              <span style={{
-                background: 'linear-gradient(to bottom right, #ffffff 0%, #e0e0e0 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}>Create Once,</span>
-              <span style={{
-                background: 'linear-gradient(to bottom right, #0894ff 0%, #c959dd 34%, #ff2e54 68%, #ff9004 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 0 28px rgba(201,89,221,0.45)) drop-shadow(0 0 56px rgba(8,148,255,0.2))',
-              }}>&nbsp;Build Forever</span>
+          <div ref={heroHeadlineRef} className="hero-copy-lockup">
+            <div className="hero-kicker">
+              <span>Motion Grace CGI Studio</span>
+            </div>
+            <h1 className="hero-premium-headline">
+              <span>Imagine.</span>
+              <span>Render.</span>
+              <span>Realize.</span>
             </h1>
           </div>
 
-          {/* ── Typing Subheading ─────────────────────────────── */}
-          <div
-            ref={heroSublineRef}
-            className="mb-8"
-            style={{
-              opacity: 0,
-              minHeight: '1.6em',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <p className="typing-subheading">
-              {subTyped}
-              <span className="typing-cursor">|</span>
+          <div ref={heroSublineRef} className="hero-subcopy-wrap">
+            <p className="hero-premium-subline">
+              We bridge the gap between abstract concepts and cinematic reality with high-end CGI that defines your brand.
             </p>
           </div>
 
-          {/* ── Tagline dots indicator ────────────────────────── */}
-          <div
-            ref={heroDotsRef}
-            className="flex items-center gap-2 mb-10"
-            style={{
-              opacity: 0,
-            }}>
-            {sublines.map((_, i) => (
-              <div
-                key={i}
-                className="tagline-dot"
-                style={{
-                  background: i === subIndex ? 'var(--primary)' : 'rgba(201,169,110,0.2)',
-                  boxShadow: i === subIndex ? '0 0 8px rgba(201,169,110,0.6)' : 'none',
-                  transform: i === subIndex ? 'scale(1.4)' : 'scale(1)',
-                }}
-              />
-            ))}
+          <div ref={heroDotsRef} className="hero-proof-row" aria-label="Studio strengths">
+            <span>High-end CGI</span>
+            <span>Cinematic Product Worlds</span>
+            <span>Brand-defining Assets</span>
           </div>
 
-          {/* ── Single CTA Button ────────────────────────────── */}
           <div
             ref={heroActionsRef}
+            className="hero-actions"
             style={{
-              opacity: 0,
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              gap: '1.75rem',
+              justifyContent: 'center',
+              gap: '0.875rem',
+              flexWrap: 'wrap',
             }}>
-            <a
+            <GlassButton
+              className="hero-glass-callout hero-glass-callout-primary"
               href="https://app.motiongraceco.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="get-started-btn"
-             
-             >
-              Get Started
-              <span className="btn-arrow">→</span>
-            </a>
+              size="default"
+            >
+              Start Your Project
+            </GlassButton>
+            <GlassButton
+              className="hero-glass-callout hero-glass-callout-secondary"
+              href="https://app.motiongraceco.com/gallery"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="default"
+            >
+              View Our Portfolio
+            </GlassButton>
 
-            {/* ── Scroll indicator ─────────────────────────── */}
-            <div
-              className="flex flex-col items-center gap-2"
-              style={{ opacity: 0 }}>
-              <span className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground">Scroll</span>
-              <div ref={heroScrollCueRef} className="w-px h-10 bg-gradient-to-b from-primary/60 to-transparent" />
-            </div>
           </div>
+          <div ref={heroScrollCueRef} className="pointer-events-none absolute bottom-14 left-1/2 hidden h-10 w-px -translate-x-1/2 bg-gradient-to-b from-primary/60 to-transparent opacity-0 sm:block" />
         </div>
         {/* ── View Our Story — bottom left ──────────────────────── */}
         <div
           ref={heroStoryRef}
+          className="hero-story-trigger"
           style={{
             position: 'absolute',
             bottom: '2.5rem',
             left: '2rem',
             zIndex: 30,
-            opacity: 0,
           }}>
           <button
             onClick={openStory}
@@ -1220,8 +1081,8 @@ export default function HeroSection() {
             onMouseLeave={() => { setViewBtnHovered(false); if (storyOpenTimerRef.current) { clearTimeout(storyOpenTimerRef.current); storyOpenTimerRef.current = null; } }}
             className="view-story-btn"
             aria-label="View our story"
-           
-           
+
+
             style={{ touchAction: 'manipulation' }}
           >
             {/* Animated play ring */}
@@ -1281,285 +1142,285 @@ export default function HeroSection() {
           <div ref={storyScrollRef} className="story-scroll-inner">
             <div ref={storyScrollContentRef}>
 
-            {/* ════ SCREEN 1: "THE PROBLEM" title ════ */}
-            <div className="story-title-screen">
-              <div className="story-noise" />
-              <div
-                ref={storyTitleBlockRef}
-                style={{
-                  textAlign: 'center', position: 'relative', zIndex: 2,
-                  opacity: titlePhase === 'hidden' ? 0 : 1,
-                  transform: titlePhase === 'hidden' ? 'translateY(28px)' : 'translateY(0)',
-                  transition: 'opacity 0.9s ease, transform 0.9s cubic-bezier(0.16,1,0.3,1)',
-                }}
-              >
-                <div style={{ fontSize: '0.6rem', letterSpacing: '0.4em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.4)', marginBottom: '1.2rem', fontFamily: 'var(--font-sans)' }}>The Story of</div>
-                <h2 style={{ margin: 0, lineHeight: 0.88, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: 'clamp(1.2rem, 5vw, 3.5rem)', fontWeight: 300, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(237,233,227,0.3)' }}>The</span>
-                  <span style={{ fontSize: 'clamp(4.5rem, 20vw, 16rem)', fontWeight: 900, letterSpacing: '-0.06em', color: 'rgba(237,233,227,0.95)', textShadow: '0 0 120px rgba(237,233,227,0.06)', lineHeight: 0.85 }}>Problem</span>
-                </h2>
-                <div style={{ fontSize: 'clamp(0.7rem, 1.4vw, 0.9rem)', color: 'rgba(237,233,227,0.25)', marginTop: '1.8rem', letterSpacing: '0.04em', fontFamily: 'var(--font-sans)', fontWeight: 300 }}>Why your current approach is costing you everything.</div>
-              </div>
-              {/* Scroll hint */}
-              <div ref={storyTitleHintRef} style={{ position: 'absolute', bottom: '3rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', opacity: titlePhase === 'shown' ? 1 : 0, transition: 'opacity 0.8s ease', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '8px', letterSpacing: '0.32em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.4)', fontFamily: 'var(--font-sans)' }}>scroll</span>
-                <div style={{ position: 'relative', width: '1px', height: '52px', background: 'rgba(201,89,221,0.12)' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '1px', height: '40%', background: 'rgba(201,89,221,0.7)', animation: 'sScrollDrop 1.8s ease-in-out infinite' }} />
+              {/* ════ SCREEN 1: "THE PROBLEM" title ════ */}
+              <div className="story-title-screen">
+                <div className="story-noise" />
+                <div
+                  ref={storyTitleBlockRef}
+                  style={{
+                    textAlign: 'center', position: 'relative', zIndex: 2,
+                    opacity: titlePhase === 'hidden' ? 0 : 1,
+                    transform: titlePhase === 'hidden' ? 'translateY(28px)' : 'translateY(0)',
+                    transition: 'opacity 0.9s ease, transform 0.9s cubic-bezier(0.16,1,0.3,1)',
+                  }}
+                >
+                  <div style={{ fontSize: '0.6rem', letterSpacing: '0.4em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.4)', marginBottom: '1.2rem', fontFamily: 'var(--font-sans)' }}>The Story of</div>
+                  <h2 style={{ margin: 0, lineHeight: 0.88, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: 'clamp(1.2rem, 5vw, 3.5rem)', fontWeight: 300, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(237,233,227,0.3)' }}>The</span>
+                    <span style={{ fontSize: 'clamp(4.5rem, 20vw, 16rem)', fontWeight: 900, letterSpacing: '-0.06em', color: 'rgba(237,233,227,0.95)', textShadow: '0 0 120px rgba(237,233,227,0.06)', lineHeight: 0.85 }}>Problem</span>
+                  </h2>
+                  <div style={{ fontSize: 'clamp(0.7rem, 1.4vw, 0.9rem)', color: 'rgba(237,233,227,0.25)', marginTop: '1.8rem', letterSpacing: '0.04em', fontFamily: 'var(--font-sans)', fontWeight: 300 }}>Why your current approach is costing you everything.</div>
                 </div>
-              </div>
-            </div>
-
-            {/* ════ SCREEN 1: exact copy from ProblemSection ════ */}
-            <div
-              ref={storyScreen1Ref}
-              className="relative overflow-hidden flex flex-col justify-center px-6 sm:px-10"
-              style={{ minHeight: '100vh', background: 'transparent' }}
-            >
-              <div className="absolute inset-0 pointer-events-none" style={{
-                opacity: 0.04 + sDistortLevel * 0.03,
-                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-                backgroundSize: '150px 150px', animation: 'noise-shift 0.5s steps(3) infinite',
-              }} />
-              <div className="relative z-10 w-full py-20" style={{ maxWidth: '96vw', margin: '0 auto' }}>
-                <div className="mb-8 flex items-center gap-3" style={{
-                  opacity: sDistortLevel > 0.1 ? 1 : 0,
-                  transform: `translateY(${sDistortLevel > 0.1 ? 0 : 16}px)`,
-                  transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)',
-                }}>
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#ff6b6b', boxShadow: '0 0 8px rgba(255,80,80,0.8)', animation: 'flicker-dot 1.8s ease-in-out infinite' }} />
-                  <span className="text-[10px] tracking-[0.3em] uppercase" style={{ color: 'rgba(255,107,107,0.6)' }}>The Reality Check</span>
-                </div>
-                <div className="mb-12" style={{ lineHeight: 1.05 }}>
-                  {[
-                    { text: 'Your', accent: false }, { text: 'product', accent: false },
-                    { text: 'shoots', accent: false }, { text: 'take', accent: false },
-                    { text: '6 weeks.', accent: true }, { text: 'Cost you', accent: false },
-                    { text: '$80,000.', accent: true }, { text: 'Deliver', accent: false },
-                    { text: '20 assets.', accent: true }, { text: 'And go', accent: false },
-                    { text: 'out of date', accent: false }, { text: 'in months.', accent: true },
-                  ].map((word, i) => (
-                    <span key={i} style={{
-                      fontSize: 'clamp(2.8rem, 7.2vw, 7rem)', fontWeight: word.accent ? 800 : 300,
-                      letterSpacing: '-0.03em', color: word.accent ? '#ff6b6b' : 'rgba(237,233,227,0.88)',
-                      transform: sVisibleLines[i] ? 'translateY(0)' : 'translateY(110%)',
-                      opacity: sVisibleLines[i] ? 1 : 0,
-                      transition: `transform 0.7s cubic-bezier(0.16,1,0.3,1) ${i * 0.06}s, opacity 0.5s ease ${i * 0.06}s`,
-                      display: 'inline-block', textShadow: word.accent ? '0 0 40px rgba(255,80,80,0.4)' : 'none',
-                      filter: word.accent && sDistortLevel > 0.6 ? 'drop-shadow(0 0 8px rgba(255,80,80,0.55))' : 'none',
-                      animation: word.accent && sDistortLevel > 0.7 ? 'glitch-text 3s ease-in-out infinite' : 'none',
-                      marginRight: '0.25em',
-                    }}>{word.text}</span>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" style={{
-                  opacity: sDistortLevel > 0.4 ? 1 : 0,
-                  transform: `translateY(${sDistortLevel > 0.4 ? 0 : 24}px)`,
-                  transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.2s',
-                }}>
-                  {[
-                    { label: 'Studio rental', value: '$4,200/day', color: '#ff6b6b' },
-                    { label: 'Photographer fees', value: '$8,000+', color: '#ffa94d' },
-                    { label: 'Reshoots & revisions', value: 'Endless', color: '#ff6b6b' },
-                    { label: 'Final asset count', value: '≈20 images', color: '#ffa94d' },
-                  ].map((point, i) => (
-                    <div key={i} className="rounded-xl p-5 relative overflow-hidden" style={{
-                      background: 'rgba(255,80,80,0.03)', border: '1px solid rgba(255,80,80,0.1)',
-                      animation: `pain-flicker ${2 + i * 0.7}s ease-in-out infinite, widget-float ${6 + i * 1.1}s ease-in-out infinite`,
-                      animationDelay: `${i * 0.4}s, ${i * 0.7}s`, boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                    }}>
-                      <div className="text-[9px] tracking-widest uppercase mb-2" style={{ color: 'rgba(237,233,227,0.3)' }}>{point.label}</div>
-                      <div className="text-2xl font-bold" style={{ color: point.color, textShadow: `0 0 20px ${point.color}60`, animation: 'value-flicker 2.5s ease-in-out infinite', animationDelay: `${i * 0.3}s` }}>{point.value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ════ COMBINED: Screen 2 (340vh) + Screen 3 (880vh) = 1220vh ════ */}
-            <div ref={storyCombinedRef} style={{ height: `${TOTAL_VH_S}vh`, position: 'relative', background: 'transparent' }}>
-
-              {/* ── Screen 2: word-reveal, fades OUT ── */}
-              <div
-                className="sticky top-0 overflow-hidden"
-                style={{
-                  height: '100vh', background: 'transparent',
-                  opacity: sTransitionOut ? 0 : 1,
-                  transition: 'opacity 1.1s cubic-bezier(0.4,0,0.2,1)',
-                  zIndex: 1,
-                }}
-              >
-                <canvas ref={storyCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.6 }} />
-                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 90% 80% at 50% 50%, transparent 20%, rgba(0,0,0,0.3) 100%)' }} />
-                <div style={{
-                  position: 'absolute', left: 0, right: 0, top: '50%', height: '1px',
-                  background: `linear-gradient(90deg, transparent 0%, rgba(201,89,221,0) 15%, rgba(201,89,221,${sWordProgress * 0.18}) 35%, rgba(255,240,200,${sWordProgress * 0.28}) 50%, rgba(201,89,221,${sWordProgress * 0.18}) 65%, rgba(201,89,221,0) 85%, transparent 100%)`,
-                  transform: 'translateY(-50%)', pointerEvents: 'none',
-                }} />
-                {/* Vibrant Cloud Backgrounds for Screen 2 (No blur for performance) */}
-                <div style={{
-                  position: 'absolute', inset: 0, pointerEvents: 'none',
-                  opacity: sTransitionOut ? 0 : sWordProgress > 0.1 ? 1 : 0,
-                  transition: 'opacity 1.5s ease',
-                  zIndex: 0,
-                }}>
-                  <div style={{
-                    position: 'absolute', top: '20%', left: '10%', width: '60vw', height: '60vh',
-                    background: 'radial-gradient(circle, rgba(8,148,255,0.22) 0%, transparent 65%)',
-                    animation: 'float-cloud-1 12s ease-in-out infinite alternate',
-                  }} />
-                  <div style={{
-                    position: 'absolute', bottom: '10%', right: '10%', width: '70vw', height: '70vh',
-                    background: 'radial-gradient(circle, rgba(201,89,221,0.18) 0%, transparent 65%)',
-                    animation: 'float-cloud-2 15s ease-in-out infinite alternate',
-                  }} />
-                  <div style={{
-                    position: 'absolute', top: '40%', left: '50%', transform: 'translateX(-50%)', width: '80vw', height: '50vh',
-                    background: `radial-gradient(ellipse, rgba(255,46,84,${sGlowPulse ? 0.3 : 0.15}) 0%, transparent 70%)`,
-                    transition: 'background 1.5s ease',
-                    animation: 'float-cloud-3 10s ease-in-out infinite alternate',
-                  }} />
-                </div>
-
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6vw' }}>
-                  <div style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '20px', height: '1px', background: 'rgba(201,89,221,0.5)' }} />
-                    <span style={{ fontSize: '10px', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.7)', fontWeight: 700, fontFamily: 'var(--font-sans)' }}>The Alternative</span>
-                    <div style={{ width: '20px', height: '1px', background: 'rgba(201,89,221,0.5)' }} />
-                  </div>
-                  <div ref={storyS2RevealRef} style={{ textAlign: 'center', maxWidth: '820px' }}>
-                    <h2 style={{ fontSize: 'clamp(2rem, 5.5vw, 4.2rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.05, margin: 0 }}>
-                      {['There','is','a'].map((w,i) => <span key={`p-${i}`} className="ss2-reveal-word" style={{ marginRight: '0.25em' }}>{w} </span>)}
-                      {['Better','Way.'].map((w,i) => <span key={`h-${i}`} className="ss2-reveal-word ss2-highlight" style={{ marginRight: '0.22em' }}>{w} </span>)}
-                      <br />
-                      <span className="ss2-reveal-word" style={{ marginRight: '0.28em' }}>Try </span>
-                      <span className="ss2-reveal-word ss2-brand">MotionGrace.</span>
-                    </h2>
-                  </div>
-                  <div style={{ marginTop: '2.5rem' }}>
-                    <span style={{ fontSize: '11px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.38)', fontWeight: 400, fontFamily: 'var(--font-sans)' }}>AI-powered product visuals</span>
-                  </div>
-                </div>
-
-                {/* Scroll arrow */}
-                <div style={{
-                  position: 'absolute', bottom: '44px', left: '50%', transform: 'translateX(-50%)',
-                  opacity: sArrowDone ? 0 : sWordProgress > 0.72 ? Math.min(1, (sWordProgress - 0.72) * 4) : 0,
-                  transition: sArrowDone ? 'opacity 0.5s ease' : 'opacity 0.8s ease',
-                  pointerEvents: 'none', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-                }}>
-                  <span style={{ fontSize: '8px', letterSpacing: '0.32em', textTransform: 'uppercase', color: `rgba(201,89,221,${0.2 + sArrowFill * 0.3})`, fontFamily: 'var(--font-sans)' }}>scroll</span>
+                {/* Scroll hint */}
+                <div ref={storyTitleHintRef} style={{ position: 'absolute', bottom: '3rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', opacity: titlePhase === 'shown' ? 1 : 0, transition: 'opacity 0.8s ease', pointerEvents: 'none' }}>
+                  <span style={{ fontSize: '8px', letterSpacing: '0.32em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.4)', fontFamily: 'var(--font-sans)' }}>scroll</span>
                   <div style={{ position: 'relative', width: '1px', height: '52px', background: 'rgba(201,89,221,0.12)' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '1px', height: `${sArrowFill * 100}%`, background: `rgba(201,89,221,${0.4 + sArrowFill * 0.5})`, transition: 'height 0.06s linear', boxShadow: sArrowFill > 0.7 ? '0 0 6px rgba(201,89,221,0.5)' : 'none' }} />
-                    <div style={{ position: 'absolute', bottom: '-3px', left: '50%', transform: 'translateX(-50%)', width: '3px', height: '3px', borderRadius: '50%', background: `rgba(201,89,221,${0.25 + sArrowFill * 0.6})` }} />
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '1px', height: '40%', background: 'rgba(201,89,221,0.7)', animation: 'sScrollDrop 1.8s ease-in-out infinite' }} />
                   </div>
                 </div>
-                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.3) 100%)' }} />
               </div>
 
-              {/* ── Screen 3: story beats, fades IN over Screen 2 ── */}
-              <div style={{
-                position: 'sticky', top: 0, height: '100vh',
-                marginTop: '-100vh',
-                overflow: 'hidden',
-                background: 'transparent',
-                display: 'flex', flexDirection: 'column', justifyContent: 'center',
-                alignItems: 'flex-start', padding: '0 8vw',
-                opacity: sTransitionOut ? 1 : 0,
-                transition: 'opacity 1.1s cubic-bezier(0.4,0,0.2,1)',
-                zIndex: 2,
-                pointerEvents: sTransitionOut ? 'auto' : 'none',
-              }}>
-                {/* Colorful cloud transition background for Screen 3 (No blur for performance) */}
-                <div className="hidden sm:block" style={{
-                  position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: -1,
+              {/* ════ SCREEN 1: exact copy from ProblemSection ════ */}
+              <div
+                ref={storyScreen1Ref}
+                className="relative overflow-hidden flex flex-col justify-center px-6 sm:px-10"
+                style={{ minHeight: '100vh', background: 'transparent' }}
+              >
+                <div className="absolute inset-0 pointer-events-none" style={{
+                  opacity: 0.04 + sDistortLevel * 0.03,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+                  backgroundSize: '150px 150px', animation: 'noise-shift 0.5s steps(3) infinite',
+                }} />
+                <div className="relative z-10 w-full py-20" style={{ maxWidth: '96vw', margin: '0 auto' }}>
+                  <div className="mb-8 flex items-center gap-3" style={{
+                    opacity: sDistortLevel > 0.1 ? 1 : 0,
+                    transform: `translateY(${sDistortLevel > 0.1 ? 0 : 16}px)`,
+                    transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)',
+                  }}>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#ff6b6b', boxShadow: '0 0 8px rgba(255,80,80,0.8)', animation: 'flicker-dot 1.8s ease-in-out infinite' }} />
+                    <span className="text-[10px] tracking-[0.3em] uppercase" style={{ color: 'rgba(255,107,107,0.6)' }}>The Reality Check</span>
+                  </div>
+                  <div className="mb-12" style={{ lineHeight: 1.05 }}>
+                    {[
+                      { text: 'Your', accent: false }, { text: 'product', accent: false },
+                      { text: 'shoots', accent: false }, { text: 'take', accent: false },
+                      { text: '6 weeks.', accent: true }, { text: 'Cost you', accent: false },
+                      { text: '$80,000.', accent: true }, { text: 'Deliver', accent: false },
+                      { text: '20 assets.', accent: true }, { text: 'And go', accent: false },
+                      { text: 'out of date', accent: false }, { text: 'in months.', accent: true },
+                    ].map((word, i) => (
+                      <span key={i} style={{
+                        fontSize: 'clamp(2.8rem, 7.2vw, 7rem)', fontWeight: word.accent ? 800 : 300,
+                        letterSpacing: '-0.03em', color: word.accent ? '#ff6b6b' : 'rgba(237,233,227,0.88)',
+                        transform: sVisibleLines[i] ? 'translateY(0)' : 'translateY(110%)',
+                        opacity: sVisibleLines[i] ? 1 : 0,
+                        transition: `transform 0.7s cubic-bezier(0.16,1,0.3,1) ${i * 0.06}s, opacity 0.5s ease ${i * 0.06}s`,
+                        display: 'inline-block', textShadow: word.accent ? '0 0 40px rgba(255,80,80,0.4)' : 'none',
+                        filter: word.accent && sDistortLevel > 0.6 ? 'drop-shadow(0 0 8px rgba(255,80,80,0.55))' : 'none',
+                        animation: word.accent && sDistortLevel > 0.7 ? 'glitch-text 3s ease-in-out infinite' : 'none',
+                        marginRight: '0.25em',
+                      }}>{word.text}</span>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" style={{
+                    opacity: sDistortLevel > 0.4 ? 1 : 0,
+                    transform: `translateY(${sDistortLevel > 0.4 ? 0 : 24}px)`,
+                    transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.2s',
+                  }}>
+                    {[
+                      { label: 'Studio rental', value: '$4,200/day', color: '#ff6b6b' },
+                      { label: 'Photographer fees', value: '$8,000+', color: '#ffa94d' },
+                      { label: 'Reshoots & revisions', value: 'Endless', color: '#ff6b6b' },
+                      { label: 'Final asset count', value: '≈20 images', color: '#ffa94d' },
+                    ].map((point, i) => (
+                      <div key={i} className="rounded-xl p-5 relative overflow-hidden" style={{
+                        background: 'rgba(255,80,80,0.03)', border: '1px solid rgba(255,80,80,0.1)',
+                        animation: `pain-flicker ${2 + i * 0.7}s ease-in-out infinite, widget-float ${6 + i * 1.1}s ease-in-out infinite`,
+                        animationDelay: `${i * 0.4}s, ${i * 0.7}s`, boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                      }}>
+                        <div className="text-[9px] tracking-widest uppercase mb-2" style={{ color: 'rgba(237,233,227,0.3)' }}>{point.label}</div>
+                        <div className="text-2xl font-bold" style={{ color: point.color, textShadow: `0 0 20px ${point.color}60`, animation: 'value-flicker 2.5s ease-in-out infinite', animationDelay: `${i * 0.3}s` }}>{point.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ════ COMBINED: Screen 2 (340vh) + Screen 3 (880vh) = 1220vh ════ */}
+              <div ref={storyCombinedRef} style={{ height: `${TOTAL_VH_S}vh`, position: 'relative', background: 'transparent' }}>
+
+                {/* ── Screen 2: word-reveal, fades OUT ── */}
+                <div
+                  className="sticky top-0 overflow-hidden"
+                  style={{
+                    height: '100vh', background: 'transparent',
+                    opacity: sTransitionOut ? 0 : 1,
+                    transition: 'opacity 1.1s cubic-bezier(0.4,0,0.2,1)',
+                    zIndex: 1,
+                  }}
+                >
+                  <canvas ref={storyCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.6 }} />
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 90% 80% at 50% 50%, transparent 20%, rgba(0,0,0,0.3) 100%)' }} />
+                  <div style={{
+                    position: 'absolute', left: 0, right: 0, top: '50%', height: '1px',
+                    background: `linear-gradient(90deg, transparent 0%, rgba(201,89,221,0) 15%, rgba(201,89,221,${sWordProgress * 0.18}) 35%, rgba(255,240,200,${sWordProgress * 0.28}) 50%, rgba(201,89,221,${sWordProgress * 0.18}) 65%, rgba(201,89,221,0) 85%, transparent 100%)`,
+                    transform: 'translateY(-50%)', pointerEvents: 'none',
+                  }} />
+                  {/* Vibrant Cloud Backgrounds for Screen 2 (No blur for performance) */}
+                  <div style={{
+                    position: 'absolute', inset: 0, pointerEvents: 'none',
+                    opacity: sTransitionOut ? 0 : sWordProgress > 0.1 ? 1 : 0,
+                    transition: 'opacity 1.5s ease',
+                    zIndex: 0,
+                  }}>
+                    <div style={{
+                      position: 'absolute', top: '20%', left: '10%', width: '60vw', height: '60vh',
+                      background: 'radial-gradient(circle, rgba(8,148,255,0.22) 0%, transparent 65%)',
+                      animation: 'float-cloud-1 12s ease-in-out infinite alternate',
+                    }} />
+                    <div style={{
+                      position: 'absolute', bottom: '10%', right: '10%', width: '70vw', height: '70vh',
+                      background: 'radial-gradient(circle, rgba(201,89,221,0.18) 0%, transparent 65%)',
+                      animation: 'float-cloud-2 15s ease-in-out infinite alternate',
+                    }} />
+                    <div style={{
+                      position: 'absolute', top: '40%', left: '50%', transform: 'translateX(-50%)', width: '80vw', height: '50vh',
+                      background: `radial-gradient(ellipse, rgba(255,46,84,${sGlowPulse ? 0.3 : 0.15}) 0%, transparent 70%)`,
+                      transition: 'background 1.5s ease',
+                      animation: 'float-cloud-3 10s ease-in-out infinite alternate',
+                    }} />
+                  </div>
+
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 6vw' }}>
+                    <div style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '20px', height: '1px', background: 'rgba(201,89,221,0.5)' }} />
+                      <span style={{ fontSize: '10px', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.7)', fontWeight: 700, fontFamily: 'var(--font-sans)' }}>The Alternative</span>
+                      <div style={{ width: '20px', height: '1px', background: 'rgba(201,89,221,0.5)' }} />
+                    </div>
+                    <div ref={storyS2RevealRef} style={{ textAlign: 'center', maxWidth: '820px' }}>
+                      <h2 style={{ fontSize: 'clamp(2rem, 5.5vw, 4.2rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.05, margin: 0 }}>
+                        {['There', 'is', 'a'].map((w, i) => <span key={`p-${i}`} className="ss2-reveal-word" style={{ marginRight: '0.25em' }}>{w} </span>)}
+                        {['Better', 'Way.'].map((w, i) => <span key={`h-${i}`} className="ss2-reveal-word ss2-highlight" style={{ marginRight: '0.22em' }}>{w} </span>)}
+                        <br />
+                        <span className="ss2-reveal-word" style={{ marginRight: '0.28em' }}>Try </span>
+                        <span className="ss2-reveal-word ss2-brand">MotionGrace.</span>
+                      </h2>
+                    </div>
+                    <div style={{ marginTop: '2.5rem' }}>
+                      <span style={{ fontSize: '11px', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.38)', fontWeight: 400, fontFamily: 'var(--font-sans)' }}>AI-powered product visuals</span>
+                    </div>
+                  </div>
+
+                  {/* Scroll arrow */}
+                  <div style={{
+                    position: 'absolute', bottom: '44px', left: '50%', transform: 'translateX(-50%)',
+                    opacity: sArrowDone ? 0 : sWordProgress > 0.72 ? Math.min(1, (sWordProgress - 0.72) * 4) : 0,
+                    transition: sArrowDone ? 'opacity 0.5s ease' : 'opacity 0.8s ease',
+                    pointerEvents: 'none', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+                  }}>
+                    <span style={{ fontSize: '8px', letterSpacing: '0.32em', textTransform: 'uppercase', color: `rgba(201,89,221,${0.2 + sArrowFill * 0.3})`, fontFamily: 'var(--font-sans)' }}>scroll</span>
+                    <div style={{ position: 'relative', width: '1px', height: '52px', background: 'rgba(201,89,221,0.12)' }}>
+                      <div style={{ position: 'absolute', top: 0, left: 0, width: '1px', height: `${sArrowFill * 100}%`, background: `rgba(201,89,221,${0.4 + sArrowFill * 0.5})`, transition: 'height 0.06s linear', boxShadow: sArrowFill > 0.7 ? '0 0 6px rgba(201,89,221,0.5)' : 'none' }} />
+                      <div style={{ position: 'absolute', bottom: '-3px', left: '50%', transform: 'translateX(-50%)', width: '3px', height: '3px', borderRadius: '50%', background: `rgba(201,89,221,${0.25 + sArrowFill * 0.6})` }} />
+                    </div>
+                  </div>
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.3) 100%)' }} />
+                </div>
+
+                {/* ── Screen 3: story beats, fades IN over Screen 2 ── */}
+                <div style={{
+                  position: 'sticky', top: 0, height: '100vh',
+                  marginTop: '-100vh',
+                  overflow: 'hidden',
+                  background: 'transparent',
+                  display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                  alignItems: 'flex-start', padding: '0 8vw',
                   opacity: sTransitionOut ? 1 : 0,
-                  transition: 'opacity 1.5s ease',
+                  transition: 'opacity 1.1s cubic-bezier(0.4,0,0.2,1)',
+                  zIndex: 2,
+                  pointerEvents: sTransitionOut ? 'auto' : 'none',
                 }}>
-                  <div style={{
-                    position: 'absolute', top: '10%', left: '10%', width: '80vw', height: '80vh',
-                    background: `radial-gradient(circle at 40% 40%, ${sPrev ? sPrev.accent : sBeat.accent}30 0%, transparent 60%)`,
-                    transition: 'background 1.5s ease',
-                  }} />
-                  <div style={{
-                    position: 'absolute', bottom: '0%', right: '10%', width: '90vw', height: '70vh',
-                    background: `radial-gradient(circle at 60% 60%, ${sBeat.accent}25 0%, transparent 60%)`,
-                    transition: 'background 1s ease',
-                  }} />
-                </div>
-
-                {/* Ambient top line */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent 0%, ${sBeat.accent}33 30%, ${sBeat.accent}88 50%, ${sBeat.accent}33 70%, transparent 100%)`, transition: 'background 1.2s ease' }} />
-
-                {/* Beat counter rail */}
-                <div style={{ position: 'absolute', right: '6vw', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-                  {STORY_BEATS_S.map((b, i) => (
-                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', opacity: i === sActiveBeat ? 1 : 0.2, transition: 'opacity 0.6s ease' }}>
-                      <div style={{ width: i === sActiveBeat ? '2px' : '1px', height: i === sActiveBeat ? `${24 + sLocalP * 20}px` : '14px', background: i === sActiveBeat ? b.accent : 'rgba(237,233,227,0.3)', transition: 'height 0.4s ease, background 0.6s ease, width 0.3s ease', borderRadius: '1px' }} />
-                      <span style={{ fontSize: '8px', letterSpacing: '0.2em', color: i === sActiveBeat ? b.accent : 'rgba(237,233,227,0.25)', fontWeight: 400, transition: 'color 0.6s ease' }}>{String(i + 1).padStart(2,'0')}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Main content */}
-                <div style={{ width: '100%', maxWidth: '820px', position: 'relative', minHeight: '55vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  {/* Previous beat exits upward */}
-                  {sPrev && sLocalP < 0.85 && (
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, opacity: Math.max(0, 1 - sLocalP * 2), transform: `translateY(${-sLocalP * 15}%)`, pointerEvents: 'none' }}>
-                      <span style={{ display: 'block', fontSize: '9px', letterSpacing: '0.38em', textTransform: 'uppercase', color: `${sPrev.accent}55`, marginBottom: '1.5rem', fontWeight: 400 }}>{sPrev.eyebrow}</span>
-                      {sPrevHeadlineLines.map((line, li) => (
-                        <div key={li} style={{ fontSize: 'clamp(3rem, 8vw, 7.5rem)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 0.95, color: 'rgba(237,233,227,0.15)' }}>{line}</div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Current beat enters */}
-                  <div style={{ opacity: sLocalP, transform: `translateY(${(1 - sLocalP) * 8}%)`, transition: 'none', willChange: 'transform, opacity' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '2rem', opacity: sLocalP > 0.2 ? 1 : 0 }}>
-                      <div style={{ width: `${20 + sLocalP * 40}px`, height: '1px', background: sBeat.accent }} />
-                      <span style={{ fontSize: '9px', letterSpacing: '0.38em', textTransform: 'uppercase', color: `${sBeat.accent}99`, fontWeight: 400 }}>{sBeat.eyebrow}</span>
-                    </div>
-                    <div style={{ marginBottom: '3rem' }}>
-                      {sHeadlineLines.map((line, li) => {
-                        const lineP = easeOutExpoS(Math.max(0, Math.min(1, (sLocalRaw - li * 0.12) / 0.65)));
-                        return (
-                          <div key={`${sActiveBeat}-${li}`} style={{ overflow: 'hidden', lineHeight: 0.92, marginBottom: '0.06em' }}>
-                            <span style={{
-                              display: 'block', fontSize: 'clamp(3.2rem, 8.2vw, 8rem)', fontWeight: 800,
-                              letterSpacing: '-0.04em', lineHeight: 0.92,
-                              color: li === sHeadlineLines.length - 1 ? 'transparent' : `rgba(237,233,227,${0.6 + lineP * 0.4})`,
-                              background: li === sHeadlineLines.length - 1 ? `linear-gradient(118deg, ${sBeat.accent}99 0%, ${sBeat.accent} 40%, #F0D898 60%, ${sBeat.accent} 80%)` : 'none',
-                              WebkitBackgroundClip: li === sHeadlineLines.length - 1 ? 'text' : 'unset',
-                              backgroundClip: li === sHeadlineLines.length - 1 ? 'text' : 'unset',
-                              transform: `translateY(${(1 - lineP) * 110}%) skewY(${(1 - lineP) * -3}deg)`,
-                              opacity: lineP, filter: `blur(${(1 - lineP) * 10}px)`,
-                            }}>{line}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div style={{ height: '1px', width: `${sLocalP * 100}%`, background: `linear-gradient(90deg, ${sBeat.accent}55 0%, ${sBeat.accent}11 100%)`, marginBottom: '2rem' }} />
-                    <p style={{ fontSize: 'clamp(0.95rem, 1.6vw, 1.15rem)', lineHeight: 1.75, color: `rgba(237,233,227,${0.2 + sLocalP * 0.45})`, fontWeight: 300, maxWidth: '580px', letterSpacing: '0.01em', margin: 0 }}>{sBeat.body}</p>
+                  {/* Colorful cloud transition background for Screen 3 (No blur for performance) */}
+                  <div className="hidden sm:block" style={{
+                    position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: -1,
+                    opacity: sTransitionOut ? 1 : 0,
+                    transition: 'opacity 1.5s ease',
+                  }}>
+                    <div style={{
+                      position: 'absolute', top: '10%', left: '10%', width: '80vw', height: '80vh',
+                      background: `radial-gradient(circle at 40% 40%, ${sPrev ? sPrev.accent : sBeat.accent}30 0%, transparent 60%)`,
+                      transition: 'background 1.5s ease',
+                    }} />
+                    <div style={{
+                      position: 'absolute', bottom: '0%', right: '10%', width: '90vw', height: '70vh',
+                      background: `radial-gradient(circle at 60% 60%, ${sBeat.accent}25 0%, transparent 60%)`,
+                      transition: 'background 1s ease',
+                    }} />
                   </div>
-                </div>
 
-                {/* Progress bar */}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '2px', background: 'rgba(237,233,227,0.05)' }}>
-                  <div style={{ height: '100%', width: `${sCounterProgress * 100}%`, background: `linear-gradient(90deg, ${STORY_BEATS_S[0].accent} 0%, ${sBeat.accent} 100%)`, transition: 'width 0.08s linear, background 1s ease', boxShadow: `0 0 12px ${sBeat.accent}55` }} />
-                </div>
+                  {/* Ambient top line */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg, transparent 0%, ${sBeat.accent}33 30%, ${sBeat.accent}88 50%, ${sBeat.accent}33 70%, transparent 100%)`, transition: 'background 1.2s ease' }} />
 
-                {/* Scroll hint at story start */}
-                <div style={{ position: 'absolute', bottom: '44px', left: '8vw', opacity: sStoryProgress < 0.04 ? 1 : 0, transition: 'opacity 0.6s ease', display: 'flex', alignItems: 'center', gap: '12px', pointerEvents: 'none' }}>
-                  <div style={{ width: '1px', height: '36px', background: 'rgba(201,89,221,0.2)', position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: 0, width: '1px', height: '40%', background: 'rgba(201,89,221,0.7)', animation: 'sScrollDrop 1.8s ease-in-out infinite' }} />
+                  {/* Beat counter rail */}
+                  <div style={{ position: 'absolute', right: '6vw', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                    {STORY_BEATS_S.map((b, i) => (
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', opacity: i === sActiveBeat ? 1 : 0.2, transition: 'opacity 0.6s ease' }}>
+                        <div style={{ width: i === sActiveBeat ? '2px' : '1px', height: i === sActiveBeat ? `${24 + sLocalP * 20}px` : '14px', background: i === sActiveBeat ? b.accent : 'rgba(237,233,227,0.3)', transition: 'height 0.4s ease, background 0.6s ease, width 0.3s ease', borderRadius: '1px' }} />
+                        <span style={{ fontSize: '8px', letterSpacing: '0.2em', color: i === sActiveBeat ? b.accent : 'rgba(237,233,227,0.25)', fontWeight: 400, transition: 'color 0.6s ease' }}>{String(i + 1).padStart(2, '0')}</span>
+                      </div>
+                    ))}
                   </div>
-                  <span style={{ fontSize: '8px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.35)', fontFamily: 'var(--font-sans)' }}>scroll to explore</span>
+
+                  {/* Main content */}
+                  <div style={{ width: '100%', maxWidth: '820px', position: 'relative', minHeight: '55vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    {/* Previous beat exits upward */}
+                    {sPrev && sLocalP < 0.85 && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, opacity: Math.max(0, 1 - sLocalP * 2), transform: `translateY(${-sLocalP * 15}%)`, pointerEvents: 'none' }}>
+                        <span style={{ display: 'block', fontSize: '9px', letterSpacing: '0.38em', textTransform: 'uppercase', color: `${sPrev.accent}55`, marginBottom: '1.5rem', fontWeight: 400 }}>{sPrev.eyebrow}</span>
+                        {sPrevHeadlineLines.map((line, li) => (
+                          <div key={li} style={{ fontSize: 'clamp(3rem, 8vw, 7.5rem)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 0.95, color: 'rgba(237,233,227,0.15)' }}>{line}</div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Current beat enters */}
+                    <div style={{ opacity: sLocalP, transform: `translateY(${(1 - sLocalP) * 8}%)`, transition: 'none', willChange: 'transform, opacity' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '2rem', opacity: sLocalP > 0.2 ? 1 : 0 }}>
+                        <div style={{ width: `${20 + sLocalP * 40}px`, height: '1px', background: sBeat.accent }} />
+                        <span style={{ fontSize: '9px', letterSpacing: '0.38em', textTransform: 'uppercase', color: `${sBeat.accent}99`, fontWeight: 400 }}>{sBeat.eyebrow}</span>
+                      </div>
+                      <div style={{ marginBottom: '3rem' }}>
+                        {sHeadlineLines.map((line, li) => {
+                          const lineP = easeOutExpoS(Math.max(0, Math.min(1, (sLocalRaw - li * 0.12) / 0.65)));
+                          return (
+                            <div key={`${sActiveBeat}-${li}`} style={{ overflow: 'hidden', lineHeight: 0.92, marginBottom: '0.06em' }}>
+                              <span style={{
+                                display: 'block', fontSize: 'clamp(3.2rem, 8.2vw, 8rem)', fontWeight: 800,
+                                letterSpacing: '-0.04em', lineHeight: 0.92,
+                                color: li === sHeadlineLines.length - 1 ? 'transparent' : `rgba(237,233,227,${0.6 + lineP * 0.4})`,
+                                background: li === sHeadlineLines.length - 1 ? `linear-gradient(118deg, ${sBeat.accent}99 0%, ${sBeat.accent} 40%, #F0D898 60%, ${sBeat.accent} 80%)` : 'none',
+                                WebkitBackgroundClip: li === sHeadlineLines.length - 1 ? 'text' : 'unset',
+                                backgroundClip: li === sHeadlineLines.length - 1 ? 'text' : 'unset',
+                                transform: `translateY(${(1 - lineP) * 110}%) skewY(${(1 - lineP) * -3}deg)`,
+                                opacity: lineP, filter: `blur(${(1 - lineP) * 10}px)`,
+                              }}>{line}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ height: '1px', width: `${sLocalP * 100}%`, background: `linear-gradient(90deg, ${sBeat.accent}55 0%, ${sBeat.accent}11 100%)`, marginBottom: '2rem' }} />
+                      <p style={{ fontSize: 'clamp(0.95rem, 1.6vw, 1.15rem)', lineHeight: 1.75, color: `rgba(237,233,227,${0.2 + sLocalP * 0.45})`, fontWeight: 300, maxWidth: '580px', letterSpacing: '0.01em', margin: 0 }}>{sBeat.body}</p>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '2px', background: 'rgba(237,233,227,0.05)' }}>
+                    <div style={{ height: '100%', width: `${sCounterProgress * 100}%`, background: `linear-gradient(90deg, ${STORY_BEATS_S[0].accent} 0%, ${sBeat.accent} 100%)`, transition: 'width 0.08s linear, background 1s ease', boxShadow: `0 0 12px ${sBeat.accent}55` }} />
+                  </div>
+
+                  {/* Scroll hint at story start */}
+                  <div style={{ position: 'absolute', bottom: '44px', left: '8vw', opacity: sStoryProgress < 0.04 ? 1 : 0, transition: 'opacity 0.6s ease', display: 'flex', alignItems: 'center', gap: '12px', pointerEvents: 'none' }}>
+                    <div style={{ width: '1px', height: '36px', background: 'rgba(201,89,221,0.2)', position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: 0, width: '1px', height: '40%', background: 'rgba(201,89,221,0.7)', animation: 'sScrollDrop 1.8s ease-in-out infinite' }} />
+                    </div>
+                    <span style={{ fontSize: '8px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'rgba(201,89,221,0.35)', fontFamily: 'var(--font-sans)' }}>scroll to explore</span>
+                  </div>
+
+                  {/* Grain + vignette */}
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.025, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '140px 140px' }} />
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%)' }} />
                 </div>
 
-                {/* Grain + vignette */}
-                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.025, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '140px 140px' }} />
-                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%)' }} />
-              </div>
-
-            </div>{/* end combined */}
+              </div>{/* end combined */}
             </div>
           </div>{/* end story-scroll-inner */}
         </div>
@@ -1583,12 +1444,48 @@ export default function HeroSection() {
           transition: none !important;
         }
         .hero-bg-layer { position: absolute; left: 0; right: 0; bottom: 0; will-change: transform; }
+        .hero-mobile-preloader-aura,
+        .hero-mobile-preloader-grid,
+        .hero-mobile-black-tint {
+          display: none;
+        }
         .hero-video-wrap {
           position: absolute; inset: 0;
           transform: scale(1.8); transform-origin: center center;
           overflow: hidden;
         }
         @media (max-width: 767px) {
+          .hero-mobile-preloader-aura,
+          .hero-mobile-preloader-grid,
+          .hero-mobile-black-tint {
+            display: block;
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+          }
+          .hero-mobile-preloader-aura {
+            z-index: 1;
+            background:
+              radial-gradient(circle at 18% 26%, rgba(8,148,255,0.2), transparent 34%),
+              radial-gradient(circle at 82% 72%, rgba(201,89,221,0.18), transparent 38%),
+              radial-gradient(circle at 50% 54%, rgba(255,144,4,0.075), transparent 38%),
+              #000;
+          }
+          .hero-mobile-preloader-grid {
+            z-index: 2;
+            opacity: 0.24;
+            background-image:
+              linear-gradient(rgba(255,255,255,0.16) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.16) 1px, transparent 1px);
+            background-size: 54px 54px;
+            mask-image: radial-gradient(circle at center, black 0%, rgba(0,0,0,0.74) 48%, transparent 78%);
+          }
+          .hero-mobile-black-tint {
+            z-index: 3;
+            background:
+              radial-gradient(circle at 50% 42%, rgba(0,0,0,0.18), rgba(0,0,0,0.58) 74%),
+              linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.54));
+          }
           .hero-video-wrap {
             transform: scale(1.15);
           }
@@ -1633,32 +1530,264 @@ export default function HeroSection() {
         @media (min-width:1280px) { .hero-widget-right { right: 3rem; } }
         @media (max-width:1023px) { .hero-widget-left, .hero-widget-right { display: none !important; } }
 
-        /* ── Headline crossfade keyframes ────────────────────────── */
-        .hl-headline {
-          font-weight: 800;
-          letter-spacing: -0.04em;
-          line-height: 1;
-          white-space: nowrap;
-          display: flex;
-          align-items: baseline;
-          justify-content: center;
-          gap: 0.25em;
+        /* ── Premium Hero Copy ───────────────────────────────────── */
+        .hero-composition-frame {
           position: absolute;
+          inset: clamp(1rem, 2.8vw, 2.4rem);
+          z-index: 18;
+          pointer-events: none;
+          border-top: 1px solid rgba(237,233,227,0.08);
+          border-bottom: 1px solid rgba(237,233,227,0.08);
+        }
+        .hero-frame-corner {
+          position: absolute;
+          width: clamp(2.2rem, 5vw, 5rem);
+          height: clamp(2.2rem, 5vw, 5rem);
+          border-color: rgba(237,233,227,0.18);
+        }
+        .hero-frame-corner-tl { top: 0; left: 0; border-top: 1px solid; border-left: 1px solid; }
+        .hero-frame-corner-tr { top: 0; right: 0; border-top: 1px solid; border-right: 1px solid; }
+        .hero-frame-corner-bl { bottom: 0; left: 0; border-bottom: 1px solid; border-left: 1px solid; }
+        .hero-frame-corner-br { bottom: 0; right: 0; border-bottom: 1px solid; border-right: 1px solid; }
+        .hero-frame-label {
+          position: absolute;
+          top: 50%;
+          font-family: var(--font-sans);
+          font-size: 0.58rem;
+          font-weight: 600;
+          letter-spacing: 0.26em;
+          line-height: 1;
+          text-transform: uppercase;
+          color: rgba(237,233,227,0.34);
+          writing-mode: vertical-rl;
+        }
+        .hero-frame-label-left {
+          left: -0.2rem;
+          transform: translate(-100%, -50%) rotate(180deg);
+        }
+        .hero-frame-label-right {
+          right: -0.2rem;
+          transform: translate(100%, -50%);
+        }
+        .hero-copy-lockup {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1.15rem;
+        }
+        .hero-kicker {
           margin: 0;
-          will-change: opacity, filter, transform;
+          display: inline-flex;
+          align-items: center;
+          gap: 1rem;
+          font-family: var(--font-sans);
+          font-size: 0.64rem;
+          font-weight: 600;
+          letter-spacing: 0.28em;
+          line-height: 1.4;
+          text-transform: uppercase;
+          color: rgba(237,233,227,0.72);
         }
-        @keyframes hl-fade-out {
-          0%   { opacity: 1; filter: blur(0px);  transform: translateY(0)    scale(1);    }
-          100% { opacity: 0; filter: blur(10px); transform: translateY(-12px) scale(0.95); }
+        .hero-kicker::before,
+        .hero-kicker::after {
+          content: '';
+          width: clamp(2.5rem, 8vw, 5.5rem);
+          height: 1px;
+          background: rgba(237,233,227,0.18);
         }
-        @keyframes hl-fade-in {
-          0%   { opacity: 0; filter: blur(10px); transform: translateY(12px)  scale(0.95); }
-          100% { opacity: 1; filter: blur(0px);  transform: translateY(0)    scale(1);    }
+        .hero-premium-headline {
+          margin: 0;
+          max-width: 1120px;
+          font-family: var(--font-space-grotesk), sans-serif;
+          font-size: clamp(4.25rem, 10.8vw, 9.6rem);
+          font-weight: 900;
+          letter-spacing: 0;
+          line-height: 0.82;
+          text-align: center;
+          text-wrap: balance;
+          color: #fff;
+          text-shadow:
+            0 1px 0 rgba(255,255,255,0.18),
+            0 24px 78px rgba(0,0,0,0.55),
+            0 0 46px rgba(201,89,221,0.24);
         }
-        .hl-fade-out { animation: hl-fade-out 700ms cubic-bezier(0.22,1,0.36,1) forwards; }
-        .hl-fade-in  { animation: hl-fade-in  700ms cubic-bezier(0.22,1,0.36,1) forwards; }
-        .hl-visible  { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); }
-        .hl-hidden   { opacity: 0; pointer-events: none; }
+        .hero-premium-headline span {
+          display: inline-block;
+          margin: 0 0.025em;
+        }
+        .hero-premium-headline span:nth-child(2) {
+          color: transparent;
+          -webkit-text-stroke: 1px rgba(237,233,227,0.78);
+          -webkit-text-fill-color: transparent;
+          text-shadow: none;
+        }
+        .hero-subcopy-wrap {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          margin-top: 1.9rem;
+          margin-bottom: 1.55rem;
+        }
+        .hero-premium-subline {
+          margin: 0;
+          max-width: 720px;
+          font-family: var(--font-sans);
+          font-size: clamp(1.02rem, 1.8vw, 1.34rem);
+          font-weight: 400;
+          letter-spacing: 0;
+          line-height: 1.62;
+          color: rgba(237,233,227,0.74);
+          text-wrap: balance;
+        }
+        .hero-proof-row {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 0;
+          margin-bottom: 2rem;
+          border-top: 1px solid rgba(237,233,227,0.12);
+          border-bottom: 1px solid rgba(237,233,227,0.1);
+        }
+        .hero-proof-row span {
+          min-height: 38px;
+          display: inline-flex;
+          align-items: center;
+          border-right: 1px solid rgba(237,233,227,0.12);
+          padding: 0.58rem 1rem;
+          background: transparent;
+          color: rgba(237,233,227,0.58);
+          font-size: 0.62rem;
+          font-weight: 600;
+          letter-spacing: 0.14em;
+          line-height: 1.2;
+          text-transform: uppercase;
+          box-shadow: none;
+        }
+        .hero-proof-row span:first-child {
+          border-left: 1px solid rgba(237,233,227,0.12);
+        }
+        .hero-actions {
+          width: 100%;
+          margin-top: 0;
+          text-align: center;
+        }
+        .hero-glass-callout {
+          flex: 0 0 auto;
+        }
+        .hero-glass-callout .glass-button {
+          min-width: 166px;
+          min-height: 46px;
+          border-color: rgba(255,255,255,0.38);
+          background: rgba(255,255,255,0.035);
+          color: rgba(255,255,255,0.9);
+          font-size: 0.88rem;
+          font-weight: 650;
+        }
+        .hero-glass-callout-primary .glass-button {
+          min-width: 186px;
+          border-color: transparent;
+          background: rgba(0,0,0,0.34);
+          color: #fff;
+          text-shadow: 0 0 12px rgba(255,255,255,0.18);
+          backdrop-filter: blur(18px) saturate(1.28);
+          -webkit-backdrop-filter: blur(18px) saturate(1.28);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.12),
+            inset 0 -1px 0 rgba(255,255,255,0.06),
+            0 0 14px rgba(201,89,221,0.28),
+            0 0 32px rgba(8,148,255,0.18),
+            0 18px 54px rgba(0,0,0,0.52);
+        }
+        .hero-glass-callout-primary .glass-button::before {
+          background: rgba(0,0,0,0.18);
+        }
+        .hero-glass-callout-primary .glass-button::after {
+          content: '';
+          position: absolute;
+          inset: -2px;
+          z-index: 0;
+          border-radius: inherit;
+          padding: 2px;
+          pointer-events: none;
+          background: linear-gradient(to right, #0894ff 0%, #c959dd 45%, #ff9004 100%);
+          -webkit-mask:
+            linear-gradient(#fff 0 0) content-box,
+            linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          filter:
+            drop-shadow(0 0 8px rgba(201,89,221,0.62))
+            drop-shadow(0 0 14px rgba(8,148,255,0.3));
+          opacity: 0.94;
+          animation: hero-ai-border-glow 3.6s ease-in-out infinite;
+        }
+        .hero-glass-callout-primary .glass-button-text {
+          z-index: 2;
+        }
+        .hero-glass-callout-primary .glass-button-shadow {
+          background:
+            radial-gradient(circle at 34% 48%, rgba(201,89,221,0.62), transparent 56%),
+            radial-gradient(circle at 70% 46%, rgba(255,144,4,0.42), transparent 60%),
+            rgba(8,148,255,0.28);
+          filter: blur(22px);
+          opacity: 0.38;
+        }
+        .hero-glass-callout-primary:hover .glass-button,
+        .hero-glass-callout-primary:focus-within .glass-button {
+          border-color: transparent !important;
+          background: rgba(0,0,0,0.36) !important;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.09),
+            inset 0 -1px 0 rgba(255,255,255,0.04),
+            0 0 18px rgba(8,148,255,0.5),
+            0 0 34px rgba(201,89,221,0.56),
+            0 0 58px rgba(255,144,4,0.32),
+            0 20px 58px rgba(0,0,0,0.62) !important;
+        }
+        .hero-glass-callout-primary:hover .glass-button::after,
+        .hero-glass-callout-primary:focus-within .glass-button::after {
+          background: linear-gradient(to right, #0894ff 0%, #c959dd 45%, #ff9004 100%) !important;
+          filter:
+            drop-shadow(0 0 13px rgba(8,148,255,0.78))
+            drop-shadow(0 0 22px rgba(201,89,221,0.88))
+            drop-shadow(0 0 30px rgba(255,144,4,0.58));
+          opacity: 1;
+        }
+        .hero-glass-callout-primary:hover .glass-button-shadow,
+        .hero-glass-callout-primary:focus-within .glass-button-shadow {
+          background:
+            radial-gradient(circle at 28% 45%, rgba(8,148,255,0.78), transparent 52%),
+            radial-gradient(circle at 50% 50%, rgba(201,89,221,0.86), transparent 58%),
+            radial-gradient(circle at 78% 48%, rgba(255,144,4,0.64), transparent 58%) !important;
+          opacity: 0.8 !important;
+          filter: blur(30px) saturate(1.55) !important;
+        }
+        @keyframes hero-ai-border-glow {
+          0%, 100% {
+            filter:
+              drop-shadow(0 0 7px rgba(201,89,221,0.54))
+              drop-shadow(0 0 12px rgba(8,148,255,0.24));
+            opacity: 0.88;
+          }
+          50% {
+            filter:
+              drop-shadow(0 0 11px rgba(255,144,4,0.52))
+              drop-shadow(0 0 18px rgba(201,89,221,0.36));
+            opacity: 1;
+          }
+        }
+        .hero-glass-callout-secondary .glass-button {
+          border-color: rgba(255,255,255,0.24);
+          background: rgba(255,255,255,0.018);
+          color: rgba(237,233,227,0.78);
+        }
+        .hero-glass-callout-secondary .glass-button::before {
+          background: rgba(255,255,255,0.035);
+        }
+        .hero-glass-callout-secondary .glass-button-shadow {
+          background: rgba(255,255,255,0.16);
+        }
 
         /* ── Particles ───────────────────────────────────────────── */
         @keyframes hero-float-particle {
@@ -1668,181 +1797,181 @@ export default function HeroSection() {
           75%     { transform: translateY(-18px) translateX(2px);  opacity: 0.9; }
         }
 
-        /* ══════════════════════════════════════════════════════════
-           CYCLING HEADLINE
-        ══════════════════════════════════════════════════════════ */
-
-        /*
-          The stage uses a fixed pixel height sized to always fit two
-          lines at the chosen font-size, so nothing below it jumps.
-          The tagline is absolutely positioned inside it so only it
-          animates, not the surrounding layout.
-        */
-        .headline-stage {
-          position: relative;
-          /* two lines × line-height + a little breathing room */
-          height: clamp(7.5rem, 18vw, 13.5rem);
-          width: 100%;
-          overflow: visible;
+        @media (max-width: 767px) {
+          .hero-composition-frame {
+            inset: 0.9rem;
+            border-top-color: rgba(237,233,227,0.07);
+            border-bottom-color: rgba(237,233,227,0.07);
+            background: transparent;
+          }
+          .hero-frame-corner {
+            width: 2.35rem;
+            height: 2.35rem;
+            border-color: rgba(237,233,227,0.22);
+          }
+          .hero-frame-label {
+            display: none;
+          }
+          .hero-content {
+            min-height: 100svh;
+            justify-content: center;
+            padding: 6.2rem 1.15rem 7.1rem;
+          }
+          .hero-copy-lockup {
+            position: relative;
+            gap: 0.82rem;
+          }
+          .hero-kicker {
+            max-width: 92vw;
+            gap: 0.78rem;
+            font-size: 0.56rem;
+            letter-spacing: 0.18em;
+            color: rgba(237,233,227,0.58);
+          }
+          .hero-kicker::before,
+          .hero-kicker::after {
+            width: 1.6rem;
+            background: rgba(237,233,227,0.14);
+          }
+          .hero-premium-headline {
+            width: min(100%, 21rem);
+            font-size: clamp(3.05rem, 15.4vw, 4.55rem);
+            line-height: 0.88;
+            text-shadow:
+              0 1px 0 rgba(255,255,255,0.16),
+              0 18px 52px rgba(0,0,0,0.52);
+          }
+          .hero-premium-headline span {
+            display: block;
+            margin: 0;
+          }
+          .hero-premium-headline span:first-child {
+            text-align: center;
+            padding-left: 0;
+          }
+          .hero-premium-headline span:nth-child(2) {
+            text-align: center;
+            padding-right: 0;
+            -webkit-text-stroke-width: 0.85px;
+            opacity: 0.86;
+          }
+          .hero-premium-headline span:last-child {
+            text-align: center;
+            padding-left: 0;
+          }
+          .hero-subcopy-wrap {
+            margin-top: 1.2rem;
+            margin-bottom: 1rem;
+          }
+          .hero-premium-subline {
+            max-width: 19.8rem;
+            font-size: 0.88rem;
+            line-height: 1.56;
+            color: rgba(237,233,227,0.74);
+          }
+          .hero-proof-row {
+            width: min(100%, 20rem);
+            max-width: 20rem;
+            margin-bottom: 1.18rem;
+            background: transparent;
+            border-top-color: rgba(237,233,227,0.08);
+            border-bottom-color: rgba(237,233,227,0.08);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+          }
+          .hero-proof-row span {
+            flex: 1 1 100%;
+            justify-content: center;
+            min-height: 24px;
+            border-left: 0;
+            border-right: 0;
+            border-bottom: 1px solid rgba(237,233,227,0.055);
+            padding: 0.31rem 0.52rem;
+            font-size: 0.48rem;
+            letter-spacing: 0.11em;
+            white-space: nowrap;
+          }
+          .hero-proof-row span:last-child {
+            border-bottom: 0;
+          }
+          .hero-actions {
+            width: min(100%, 20rem);
+            max-width: 20rem;
+            margin-left: auto;
+            margin-right: auto;
+            justify-content: center !important;
+            gap: 0.5rem !important;
+            position: relative;
+            padding-top: 0.74rem;
+          }
+          .hero-actions::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 4.8rem;
+            height: 1px;
+            transform: translateX(-50%);
+            background: rgba(237,233,227,0.14);
+          }
+          .hero-glass-callout {
+            flex: 1 1 0;
+            min-width: 0;
+          }
+          .hero-glass-callout-primary {
+            flex: 1.16 1 0;
+          }
+          .hero-glass-callout .glass-button {
+            width: 100%;
+            min-height: 38px;
+            min-width: 0;
+            border-color: rgba(237,233,227,0.3);
+            background: rgba(255,255,255,0.028);
+            font-size: 0.72rem;
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.16),
+              0 10px 24px rgba(0,0,0,0.24);
+          }
+          .hero-glass-callout-primary .glass-button {
+            min-height: 42px;
+            border-color: transparent;
+            background: rgba(0,0,0,0.34);
+            font-size: 0.75rem;
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.12),
+              0 0 13px rgba(201,89,221,0.28),
+              0 0 24px rgba(8,148,255,0.16),
+              0 12px 28px rgba(0,0,0,0.36);
+          }
+          .hero-glass-callout-primary .glass-button::after {
+            inset: -1.5px;
+            padding: 1.5px;
+            filter:
+              drop-shadow(0 0 7px rgba(201,89,221,0.58))
+              drop-shadow(0 0 12px rgba(8,148,255,0.24));
+          }
+          .hero-glass-callout .glass-button-text {
+            padding: 0.66rem 0.62rem;
+            letter-spacing: -0.01em;
+          }
+          .hero-glass-callout-secondary .glass-button {
+            color: rgba(237,233,227,0.72);
+          }
+          .hero-story-trigger {
+            bottom: 1.25rem !important;
+            left: 50% !important;
+            transform: translateX(-50%);
+          }
+          .story-ring svg {
+            width: 30px;
+            height: 30px;
+          }
+          .story-label-text {
+            font-size: 0.55rem;
+            letter-spacing: 0.14em;
+            white-space: nowrap;
+          }
         }
-
-        .headline-tagline {
-          /* Comfortable size — fits fully within the viewport */
-          font-size: clamp(2rem, 5.5vw, 4.2rem);
-          font-weight: 800;
-          letter-spacing: -0.035em;
-          line-height: 1.08;
-          text-align: center;
-          /* Absolutely stack inside the stage */
-          position: absolute;
-          inset: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          /* default: hidden */
-          opacity: 0;
-          transform: translateY(10px);
-          filter: blur(6px);
-          will-change: opacity, transform, filter;
-        }
-
-        .tagline-entering {
-          animation: tagline-in ${FADE_MS}ms ease-in-out forwards;
-        }
-        .tagline-visible {
-          opacity: 1;
-          transform: translateY(0);
-          filter: blur(0px);
-        }
-        .tagline-leaving {
-          animation: tagline-out ${FADE_MS}ms ease-in-out forwards;
-        }
-
-        @keyframes tagline-in {
-          from { opacity: 0; transform: translateY(10px); filter: blur(6px); }
-          to   { opacity: 1; transform: translateY(0);    filter: blur(0px); }
-        }
-        @keyframes tagline-out {
-          from { opacity: 1; transform: translateY(0);     filter: blur(0px); }
-          to   { opacity: 0; transform: translateY(-10px); filter: blur(6px); }
-        }
-
-        /* ── Tagline dots ─────────────────────────────────────── */
-        .tagline-dot {
-          width: 4px; height: 4px; border-radius: 50%;
-          transition: background 0.4s ease,
-                      transform  0.4s cubic-bezier(0.34,1.56,0.64,1),
-                      box-shadow 0.4s ease;
-        }
-
-        /* ── Typing Subheading ───────────────────────────────── */
-        .typing-subheading {
-          font-size: clamp(0.8rem, 1.8vw, 1.1rem);
-          font-weight: 400;
-          letter-spacing: 0.06em;
-          color: rgba(237,233,227,0.6);
-          font-family: var(--font-sans);
-          margin: 0;
-          display: inline-flex;
-          align-items: center;
-        }
-        .typing-cursor {
-          color: rgba(201,89,221,0.9);
-          animation: cursor-blink 0.8s step-end infinite;
-          text-shadow: 0 0 10px rgba(201,89,221,0.7);
-          margin-left: 1px;
-          font-weight: 100;
-        }
-        @keyframes cursor-blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-        /* ── GET STARTED BUTTON — exact nav pill clone + apple glow ── */
-        .get-started-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.6rem 1.6rem;
-
-  border-radius: 9999px;
-  border: 1px solid transparent;
-
-  background: rgba(237, 233, 227, 0.06);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
-
-  color: rgba(237,233,227,0.95);
-
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-
-
-
-  transition: 
-    transform 0.35s cubic-bezier(0.34,1.56,0.64,1),
-    box-shadow 0.4s ease;
-}
-
-/* Base gradient border */
-.get-started-btn::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 9999px;
-  padding: 1px;
-
-  background: linear-gradient(to right, #0894ff, #c959dd, #ff2e54, #ff9004);
-
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-
-  opacity: 0.9;
-}
-
-/* Base bottom glow */
-.get-started-btn::after {
-  content: '';
-  position: absolute;
-  bottom: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 75%;
-  height: 22px;
-
-  background: linear-gradient(to right, #0894ff44, #c959dd66, #ff2e5444, #ff900433);
-
-  filter: blur(12px);
-  border-radius: 50%;
-  opacity: 0.7;
-
-  transition: all 0.4s ease;
-}
-
-/* REAL hover glow */
-.get-started-btn:hover {
-  transform: scale(1.07);
-
-  /* THIS is what actually makes it glow more */
-  box-shadow:
-    0 0 20px rgba(8, 148, 255, 0.35),
-    0 0 40px rgba(201, 89, 221, 0.25),
-    0 0 60px rgba(255, 46, 84, 0.2);
-}
-
-/* Enhance bottom glow */
-.get-started-btn:hover::after {
-  opacity: 1;
-  filter: blur(20px);
-  transform: translateX(-50%) scale(1.15);
-}
-
-        .btn-arrow {
-          display: inline-block;
-          font-size: 0.75rem;
-          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        .get-started-btn:hover .btn-arrow { transform: translateX(4px); }
 
         /* ── View Our Story Button ───────────────────────── */
         .view-story-btn {

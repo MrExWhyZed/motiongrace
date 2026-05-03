@@ -243,7 +243,7 @@ export default function CinematicProductCommercials() {
               fontWeight: 700,
               letterSpacing: '-0.03em',
               lineHeight: 1.05,
-              fontFamily: 'var(--font-inter), Inter, sans-serif',
+              fontFamily: 'var(--font-space-grotesk), sans-serif',
             }}
           >
             <span className="text-gradient-gold">Cinematic Product</span>
@@ -304,7 +304,7 @@ export default function CinematicProductCommercials() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(201,169,110,0.6)', marginBottom: '1rem' }}>
               Creative Direction
             </p>
-            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3' }}>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3' }}>
               Four Style Pillars
             </h2>
           </div>
@@ -359,7 +359,7 @@ export default function CinematicProductCommercials() {
 
                     {/* Card text */}
                     <div style={{ padding: '1.25rem 1.5rem 1.75rem' }}>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#EDE9E3', marginBottom: '0.55rem', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#EDE9E3', marginBottom: '0.55rem', fontFamily: 'var(--font-space-grotesk), sans-serif' }}>
                         {pillar.title}
                       </h3>
                       <p style={{ fontSize: 13, color: 'rgba(237,233,227,0.4)', lineHeight: 1.7 }}>
@@ -383,7 +383,7 @@ export default function CinematicProductCommercials() {
               <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(201,169,110,0.6)', marginBottom: '1.5rem' }}>
                 Visual Mastery
               </p>
-              <h2 style={{ fontSize: 'clamp(2.2rem, 4vw, 3.5rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: 'clamp(2.2rem, 4vw, 3.5rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', marginBottom: '1.5rem' }}>
                 Shots Money<br />
                 <span className="text-gradient-gold">Can't Buy</span>
               </h2>
@@ -529,7 +529,7 @@ export default function CinematicProductCommercials() {
               <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(139,92,246,0.7)', marginBottom: '1.5rem' }}>
                 Total Immersion
               </p>
-              <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', marginBottom: '1.5rem' }}>
                 Immersive<br />
                 <span style={{ color: '#8B5CF6' }}>Brand Worlds</span>
               </h2>
@@ -561,7 +561,7 @@ export default function CinematicProductCommercials() {
               <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(201,169,110,0.6)', marginBottom: '1.5rem' }}>
                 The Asset Advantage
               </p>
-              <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', marginBottom: '1.5rem' }}>
                 Digital Twin<br />
                 <span className="text-gradient-gold">Technology</span>
               </h2>
@@ -629,7 +629,7 @@ export default function CinematicProductCommercials() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(201,169,110,0.6)', marginBottom: '1rem' }}>
               Delivery Standards
             </p>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3' }}>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3' }}>
               Technical Specifications
             </h2>
           </div>
@@ -649,7 +649,7 @@ export default function CinematicProductCommercials() {
                 onMouseLeave={e => { if (activeSpec !== i) (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(201,169,110,0.1)'; }}
               >
                 <div style={{ fontSize: 28, color: '#C9A96E', opacity: 0.5, marginBottom: '1.5rem' }}>{spec.icon}</div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#EDE9E3', marginBottom: '0.5rem', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>{spec.label}</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#EDE9E3', marginBottom: '0.5rem', fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{spec.label}</h3>
                 <p style={{ fontSize: 12, color: '#C9A96E', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>{spec.detail}</p>
                 <p style={{ fontSize: 12, color: 'rgba(237,233,227,0.35)', lineHeight: 1.65 }}>{spec.desc}</p>
               </div>
@@ -666,7 +666,7 @@ export default function CinematicProductCommercials() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(201,169,110,0.6)', marginBottom: '1.5rem' }}>
               Ready to Begin
             </p>
-            <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 700, letterSpacing: '-0.04em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', lineHeight: 1.05, marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 700, letterSpacing: '-0.04em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', lineHeight: 1.05, marginBottom: '1.5rem' }}>
               Let's Create<br />
               <span className="text-gradient-gold">Something Iconic</span>
             </h2>

@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Link from 'next/link';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const showcaseItems = [
@@ -117,6 +120,10 @@ const MediaBackground = React.memo(function MediaBackground({
 
   // Capture the first frame as a blob URL once the image loads
   useEffect(() => {
+    // Skip expensive GIF canvas freezing on mobile to save CPU/Memory
+    const isMobile = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+    if (isMobile) return;
+
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -415,6 +422,14 @@ export default function ShowcaseSection() {
   const leaveTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [sectionVisible, setSectionVisible] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 640);
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   const handleEnter = useCallback((id: number, wrapperEl: HTMLElement) => {
     if (leaveTimerRef.current) {
@@ -476,43 +491,54 @@ export default function ShowcaseSection() {
 
   useEffect(() => {
     if (!sectionRef.current) return;
-    let mounted = true;
-    void (async () => {
-      const [{ gsap }, { ScrollTrigger }] = await Promise.all([
-        import('gsap'), import('gsap/ScrollTrigger'),
-      ]);
-      if (!mounted || !sectionRef.current) return;
-      gsap.registerPlugin(ScrollTrigger);
-      gsapRef.current = gsap;
+    
+    gsap.registerPlugin(ScrollTrigger);
+    gsapRef.current = gsap;
 
+    const ctx = gsap.context(() => {
       ScrollTrigger.create({
-        trigger: sectionRef.current, start: 'top 88%', once: true,
+        trigger: sectionRef.current,
+        start: 'top 88%',
+        once: true,
         onEnter: () => setSectionVisible(true),
       });
+
       if (headerRef.current) {
         const kids = Array.from(headerRef.current.children) as HTMLElement[];
         gsap.fromTo(kids,
           { autoAlpha: 0, y: 22 },
-          { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.08, ease: 'power3.out',
-            scrollTrigger: { trigger: headerRef.current, start: 'top 88%', once: true } }
+          { 
+            autoAlpha: 1, 
+            y: 0, 
+            duration: 0.9, 
+            stagger: 0.08, 
+            ease: 'power3.out',
+            scrollTrigger: { trigger: headerRef.current, start: 'top 88%', once: true } 
+          }
         );
       }
+
       if (btnRef.current) {
         gsap.fromTo(btnRef.current,
           { autoAlpha: 0, y: 20, scale: 0.95 },
-          { autoAlpha: 1, y: 0, scale: 1, duration: 1, ease: 'power3.out',
-            scrollTrigger: { trigger: btnRef.current, start: 'top 95%', once: true } }
+          { 
+            autoAlpha: 1, 
+            y: 0, 
+            scale: 1, 
+            duration: 1, 
+            ease: 'power3.out',
+            scrollTrigger: { trigger: btnRef.current, start: 'top 95%', once: true } 
+          }
         );
       }
-      ScrollTrigger.refresh();
-    })();
-    return () => { mounted = false; };
+    }, sectionRef.current);
+
+    return () => ctx.revert();
   }, []);
 
   return (
     <section
       ref={sectionRef}
-      data-gsap-section="default"
       className="relative overflow-hidden pt-12 pb-20 sm:py-40"
       style={{ background: 'linear-gradient(180deg, #020208 0%, #04040c 50%, #030309 100%)' }}
     >
@@ -549,7 +575,16 @@ export default function ShowcaseSection() {
             </div>
             <h2 style={{ fontSize:'clamp(1.8rem,5vw,3.5rem)', fontWeight:900, letterSpacing:'-0.045em', lineHeight:1, margin:0 }}>
               <span style={{ color:'rgba(237,233,227,0.9)' }}>See What&apos;s </span>
-              <span style={{ background:'linear-gradient(135deg,#8B6F3E 0%,#F2E4C4 40%,#D4A96A 70%,#C9956E 100%)', WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent' }}>Possible</span>
+              <span
+                style={{
+                  color: 'transparent',
+                  WebkitTextStroke: '1px rgba(237,233,227,0.78)',
+                  WebkitTextFillColor: 'transparent',
+                  textShadow: 'none',
+                }}
+              >
+                Possible
+              </span>
             </h2>
           </div>
           <div className="hidden sm:flex flex-col items-end gap-1">
@@ -568,21 +603,23 @@ export default function ShowcaseSection() {
       </div>
 
       {/* ── Desktop collage ── */}
-      <div className="hidden sm:block" style={{ position: 'relative', width: '100%', height: '800px', marginTop: '40px', marginBottom: '100px' }}>
-        <div style={{ position: 'relative', width: '100%', maxWidth: '1200px', height: '100%', margin: '0 auto' }}>
-          {showcaseItems.map((item, i) => (
-            <ShowcaseCard
-              key={`${item.id}-${i}`}
-              item={item}
-              index={i}
-              layout={collageLayouts[i]}
-              gsapRef={gsapRef}
-              onEnter={handleEnter}
-              onLeave={handleLeave}
-            />
-          ))}
+      {isDesktop && (
+        <div className="hidden sm:block" style={{ position: 'relative', width: '100%', height: '800px', marginTop: '40px', marginBottom: '100px' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '1200px', height: '100%', margin: '0 auto' }}>
+            {showcaseItems.map((item, i) => (
+              <ShowcaseCard
+                key={`${item.id}-${i}`}
+                item={item}
+                index={i}
+                layout={collageLayouts[i]}
+                gsapRef={gsapRef}
+                onEnter={handleEnter}
+                onLeave={handleLeave}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Mobile carousel ── */}
       <div className="sm:hidden px-5">

@@ -1,15 +1,19 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Manrope, Space_Grotesk } from 'next/font/google';
 import '../styles/tailwind.css';
 import HomeRouteTransition from '@/app/components/HomeRouteTransition';
 import SmoothScroll from '@/app/components/SmoothScroll';
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ['latin'],
-  axes: ['opsz'],
-  style: ['normal', 'italic'],
-  variable: '--font-inter',
+  variable: '--font-manrope',
+  display: 'swap',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
   display: 'swap',
 });
 
@@ -41,8 +45,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} dark`} suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+    <html lang="en" className={`${manrope.variable} ${spaceGrotesk.variable} dark`} suppressHydrationWarning>
+      <body className="font-sans" suppressHydrationWarning>
         <SmoothScroll />
         {children}
         <HomeRouteTransition />

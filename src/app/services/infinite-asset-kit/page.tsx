@@ -229,7 +229,7 @@ export default function InfiniteAssetKit() {
         <div style={{ padding: '1.1rem 1.25rem 1.35rem' }}>
           <h3 style={{
             margin: '0 0 0.4rem', fontSize: '0.95rem', fontWeight: 600,
-            color: '#EDE9E3', fontFamily: 'var(--font-inter), Inter, sans-serif', letterSpacing: '-0.01em',
+            color: '#EDE9E3', fontFamily: 'var(--font-space-grotesk), sans-serif', letterSpacing: '-0.01em',
           }}>
             {item.title}
           </h3>
@@ -309,7 +309,7 @@ export default function InfiniteAssetKit() {
               fontWeight: 700,
               letterSpacing: '-0.03em',
               lineHeight: 1.05,
-              fontFamily: 'var(--font-inter), Inter, sans-serif',
+              fontFamily: 'var(--font-space-grotesk), sans-serif',
             }}
           >
             <span style={{ color: '#EDE9E3' }}>One Model.</span>
@@ -363,7 +363,7 @@ export default function InfiniteAssetKit() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(74,158,255,0.6)', marginBottom: '1rem' }}>
               Made for Modern Channels
             </p>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3' }}>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3' }}>
               Ready to Post. Everywhere.
             </h2>
           </div>
@@ -442,7 +442,7 @@ export default function InfiniteAssetKit() {
               <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(74,158,255,0.6)', marginBottom: '1.5rem' }}>
                 Frictionless Delivery
               </p>
-              <h2 style={{ fontSize: 'clamp(2.2rem, 4vw, 3.8rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.0, fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: 'clamp(2.2rem, 4vw, 3.8rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.0, fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', marginBottom: '1.5rem' }}>
                 Drag.<br />Drop.<br />
                 <span className="text-gradient-blue">Done.</span>
               </h2>
@@ -601,7 +601,7 @@ export default function InfiniteAssetKit() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(74,158,255,0.6)', marginBottom: '1rem' }}>
               Compound Returns
             </p>
-            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', marginBottom: '1rem' }}>
               Accelerated Iteration Pipeline
             </h2>
             <p className="mx-auto" style={{ fontSize: 15, color: 'rgba(237,233,227,0.4)', lineHeight: 1.75, maxWidth: 600 }}>
@@ -646,7 +646,7 @@ export default function InfiniteAssetKit() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(74,158,255,0.6)', marginBottom: '1rem' }}>
               Included in Every Kit
             </p>
-            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3' }}>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3' }}>
               What's Inside the Kit
             </h2>
           </div>
@@ -673,7 +673,7 @@ export default function InfiniteAssetKit() {
           <div className="section-divider mb-24" />
           <div className="text-center mb-16" data-reveal="up">
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(74,158,255,0.6)', marginBottom: '1rem' }}>Technical Standards</p>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3' }}>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3' }}>
               Delivery Specifications
             </h2>
           </div>
@@ -693,7 +693,7 @@ export default function InfiniteAssetKit() {
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(74,158,255,0.08)'; (e.currentTarget as HTMLDivElement).style.transform = ''; }}
               >
                 <div style={{ fontSize: 28, color: '#4A9EFF', opacity: 0.4, marginBottom: '1.5rem' }}>{spec.icon}</div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#EDE9E3', marginBottom: '0.5rem', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>{spec.title}</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#EDE9E3', marginBottom: '0.5rem', fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{spec.title}</h3>
                 <p style={{ fontSize: 11, color: '#4A9EFF', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>{spec.detail}</p>
                 <p style={{ fontSize: 12, color: 'rgba(237,233,227,0.35)', lineHeight: 1.65 }}>{spec.desc}</p>
               </div>
@@ -711,7 +711,7 @@ export default function InfiniteAssetKit() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(74,158,255,0.6)', marginBottom: '1.5rem' }}>
               Begin Your Asset System
             </p>
-            <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 700, letterSpacing: '-0.04em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', lineHeight: 1.05, marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 700, letterSpacing: '-0.04em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', lineHeight: 1.05, marginBottom: '1.5rem' }}>
               One Investment.<br />
               <span className="text-gradient-blue">Limitless Output.</span>
             </h2>

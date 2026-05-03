@@ -124,7 +124,7 @@ export default function Interactive3D() {
               fontWeight: 700,
               letterSpacing: '-0.03em',
               lineHeight: 1.0,
-              fontFamily: 'var(--font-inter), Inter, sans-serif',
+              fontFamily: 'var(--font-space-grotesk), sans-serif',
             }}
           >
             <span style={{ color: '#EDE9E3' }}>Don't Just Show.</span>
@@ -172,7 +172,7 @@ export default function Interactive3D() {
                   backdropFilter: 'blur(12px)',
                 }}
               >
-                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#8B5CF6', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>{stat.value}</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#8B5CF6', fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{stat.value}</span>
                 <span style={{ fontSize: 10, color: 'rgba(237,233,227,0.35)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>{stat.label}</span>
               </div>
             ))}
@@ -208,7 +208,7 @@ export default function Interactive3D() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(139,92,246,0.7)', marginBottom: '1rem' }}>
               Live Demo
             </p>
-            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', marginBottom: '1rem' }}>
               Try It Now
             </h2>
             <p className="mx-auto" style={{ fontSize: 14, color: 'rgba(237,233,227,0.35)', lineHeight: 1.8, maxWidth: 520 }}>
@@ -300,7 +300,7 @@ export default function Interactive3D() {
           <div className="section-divider mb-24" />
           <div className="text-center mb-16" data-reveal="up">
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(139,92,246,0.7)', marginBottom: '1rem' }}>Technical Standards</p>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3' }}>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', fontWeight: 700, letterSpacing: '-0.03em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3' }}>
               Built for Production
             </h2>
           </div>
@@ -318,7 +318,7 @@ export default function Interactive3D() {
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(139,92,246,0.1)'; (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}
               >
                 <div style={{ fontSize: 28, color: '#8B5CF6', opacity: 0.5, marginBottom: '1.5rem' }}>{spec.icon}</div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#EDE9E3', marginBottom: '0.5rem', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>{spec.title}</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#EDE9E3', marginBottom: '0.5rem', fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{spec.title}</h3>
                 <p style={{ fontSize: 11, color: '#8B5CF6', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>{spec.detail}</p>
                 <p style={{ fontSize: 12, color: 'rgba(237,233,227,0.35)', lineHeight: 1.65 }}>{spec.desc}</p>
               </div>
@@ -336,7 +336,7 @@ export default function Interactive3D() {
             <p style={{ fontSize: 9, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(139,92,246,0.7)', marginBottom: '1.5rem' }}>
               Let's Build It
             </p>
-            <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 700, letterSpacing: '-0.04em', fontFamily: 'var(--font-inter), Inter, sans-serif', color: '#EDE9E3', lineHeight: 1.05, marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 700, letterSpacing: '-0.04em', fontFamily: 'var(--font-space-grotesk), sans-serif', color: '#EDE9E3', lineHeight: 1.05, marginBottom: '1.5rem' }}>
               Give Your Customers<br />
               <span
                 style={{

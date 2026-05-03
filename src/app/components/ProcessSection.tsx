@@ -57,11 +57,16 @@ let _cachedTier: Tier | null = null;
 function getDeviceTier(): Tier {
   if (_cachedTier) return _cachedTier;
   if (typeof window === 'undefined') return 'high';
-  const isMobile = window.matchMedia('(hover: none), (pointer: coarse)').matches;
-  if (isMobile) { _cachedTier = 'mobile'; return 'mobile'; }
-  const cores  = (navigator as any).hardwareConcurrency ?? 8;
+  const isMobileSize = window.matchMedia('(max-width: 1023px)').matches;
+  if (isMobileSize) { _cachedTier = 'mobile'; return 'mobile'; }
+
+  const cores = (navigator as any).hardwareConcurrency ?? 8;
   const memory = (navigator as any).deviceMemory ?? 8;
-  if (cores >= 8 && memory >= 8) { _cachedTier = 'high'; return 'high'; }
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
+  // Even if an iPad/Android tablet has 8 cores, its mobile browser decoder 
+  // cannot handle 60fps 1080p scrubbing. Cap touch devices at 'mid'.
+  if (cores >= 8 && memory >= 8 && !isTouch) { _cachedTier = 'high'; return 'high'; }
   if (cores >= 4 && memory >= 4) { _cachedTier = 'mid'; return 'mid'; }
   _cachedTier = 'low';
   return 'low';
@@ -69,39 +74,42 @@ function getDeviceTier(): Tier {
 
 // ── LERP + scrub throttle per tier ───────────────────────────────────────────
 const TIER_CONFIG: Record<Tier, { lerp: number; scrubMs: number; preload: string }> = {
-  high:   { lerp: 0.15, scrubMs: 14,  preload: 'auto'     },
-  mid:    { lerp: 0.10, scrubMs: 24,  preload: 'auto'     }, // Now uses blob, so we can scrub faster
-  low:    { lerp: 0.08, scrubMs: 36,  preload: 'auto'     }, // Now uses blob, so we can scrub faster
-  mobile: { lerp: 0.10, scrubMs: 40,  preload: 'none'     },
+  high: { lerp: 0.15, scrubMs: 14, preload: 'auto' },
+  mid: { lerp: 0.10, scrubMs: 33, preload: 'auto' }, // Now uses blob, so we can scrub faster
+  low: { lerp: 0.08, scrubMs: 40, preload: 'auto' }, // Now uses blob, so we can scrub faster
+  mobile: { lerp: 0.10, scrubMs: 40, preload: 'none' },
 };
 
 export default function ProcessSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const outerRef   = useRef<HTMLDivElement>(null);
-  const stickyRef  = useRef<HTMLDivElement>(null);
-  const videoRef   = useRef<HTMLVideoElement>(null);
+  const entryWrapRef = useRef<HTMLDivElement>(null); // entry/exit animation target
+  const outerRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const blobUrlRef = useRef<string | null>(null);
 
   // Hot-path refs — zero setState overhead per frame
-  const videoReadyRef  = useRef(false);
-  const targetTimeRef  = useRef(0);
+  const videoReadyRef = useRef(false);
+  const targetTimeRef = useRef(0);
   const currentTimeRef = useRef(0);
-  const lastScrubRef   = useRef(0);
-  const scrollProgRef  = useRef(0);
-  const rafRef         = useRef<number>(0);
-  const tierRef        = useRef<Tier>('high');
+  const lastScrubRef = useRef(0);
+  const scrollProgRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const tierRef = useRef<Tier>('high');
 
-  const [activeStep,     setActiveStep]     = useState(0);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [stepProgress,   setStepProgress]   = useState(0);
-  const [videoReady,     setVideoReady]     = useState(false);
-  const [videoSrc,       setVideoSrc]       = useState(VIDEO_URL);
-  const [sectionVisible, setSectionVisible] = useState(() => {
-    // On mobile, ScrollTrigger is never initialised, so default to visible.
-    // On desktop, start hidden and let the ScrollTrigger fade it in.
-    if (typeof window === 'undefined') return false;
-    return getDeviceTier() === 'mobile';
-  });
+  const [activeStep, setActiveStep] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoSrc, setVideoSrc] = useState(VIDEO_URL);
+
+  // DOM Refs for high-frequency progress updates
+  const scrollHintRef = useRef<HTMLDivElement>(null);
+  const topProgressBarRef = useRef<HTMLDivElement>(null);
+  const topProgressTextRef = useRef<HTMLSpanElement>(null);
+  const bottomProgressBarsRef = useRef<Array<HTMLDivElement | null>>([]);
+  const textPanelProgressBarsRef = useRef<Array<HTMLDivElement | null>>([]);
+  const headerBarsRef = useRef<Array<HTMLDivElement | null>>([]);
+
+  const [sectionVisible, setSectionVisible] = useState(false);
 
   /* ─── RAF scrub loop ───────────────────────────────────────────────────────
      Decoupled from scroll. Lerps currentTime → targetTime.
@@ -112,7 +120,6 @@ export default function ProcessSection() {
   useEffect(() => {
     const tier = getDeviceTier();
     tierRef.current = tier;
-    if (tier === 'mobile') return; // Mobile uses static cards
     const { lerp, scrubMs } = TIER_CONFIG[tier];
 
     let isVisible = false;
@@ -126,12 +133,15 @@ export default function ProcessSection() {
       if (vid && videoReadyRef.current && vid.duration && isFinite(vid.duration)) {
         const now = performance.now();
         if (now - lastScrubRef.current > scrubMs) {
-          const next = currentTimeRef.current + (targetTimeRef.current - currentTimeRef.current) * lerp;
-          if (Math.abs(next - vid.currentTime) > 0.012) {
-            vid.currentTime = next;
+          // Decoder vibration fix: Never seek if the decoder is currently busy seeking!
+          if (!vid.seeking) {
+            const next = currentTimeRef.current + (targetTimeRef.current - currentTimeRef.current) * lerp;
+            if (Math.abs(next - vid.currentTime) > 0.015) {
+              vid.currentTime = next;
+            }
+            currentTimeRef.current = next;
+            lastScrubRef.current = now;
           }
-          currentTimeRef.current = next;
-          lastScrubRef.current = now;
         }
       }
     };
@@ -161,15 +171,15 @@ export default function ProcessSection() {
   ─────────────────────────────────────────────────────────────────────────── */
   useEffect(() => {
     const tier = getDeviceTier();
-    if (tier === 'mobile') return;
+    // Use f_auto so Cloudinary delivers WebM to Android Chrome (massively faster scrubbing than MP4) and MP4 to Safari.
+    const MOBILE_URL = 'https://res.cloudinary.com/ddgyx80f6/video/upload/w_500,q_50,f_auto,vc_auto/v1777040543/process_pvakzd.mp4';
+    const OPTIMIZED_URL = 'https://res.cloudinary.com/ddgyx80f6/video/upload/w_800,q_60,f_auto,vc_auto/v1777040543/process_pvakzd.mp4';
+    const urlToFetch = tier === 'high' ? VIDEO_URL : tier === 'mobile' ? MOBILE_URL : OPTIMIZED_URL;
 
     let mounted = true;
     videoReadyRef.current = false;
     setVideoReady(false);
-    
-    // Request a lighter H264 main profile version for mid/low to save RAM and decoder load
-    const OPTIMIZED_URL = 'https://res.cloudinary.com/ddgyx80f6/video/upload/w_1024,q_auto,vc_h264:main:3.1/v1777040543/process_pvakzd.mp4';
-    const urlToFetch = tier === 'high' ? VIDEO_URL : OPTIMIZED_URL;
+
     setVideoSrc(urlToFetch);
 
     const controller = new AbortController();
@@ -200,15 +210,14 @@ export default function ProcessSection() {
   /* ─── ScrollTrigger ────────────────────────────────────────────────────── */
   useEffect(() => {
     if (!sectionRef.current) return;
-    if (getDeviceTier() === 'mobile') return;
 
     let mounted = true;
-    let cleanup = () => {};
+    let cleanup = () => { };
 
     const updateProgress = (raw: number) => {
-      const clamped  = Math.max(0, Math.min(1, raw));
+      const clamped = Math.max(0, Math.min(1, raw));
       const stepSize = 1 / steps.length;
-      const step     = Math.min(steps.length - 1, Math.floor(clamped * steps.length));
+      const step = Math.min(steps.length - 1, Math.floor(clamped * steps.length));
       const stepBase = step * stepSize;
       const progress = Math.min(1, (clamped - stepBase) / stepSize);
 
@@ -220,9 +229,38 @@ export default function ProcessSection() {
         targetTimeRef.current = target;
       }
 
-      setScrollProgress(clamped);
-      setActiveStep(step);
-      setStepProgress(progress);
+      setActiveStep(prev => {
+        if (prev !== step) return step;
+        return prev;
+      });
+
+      // Direct DOM mutations to prevent 60fps React re-renders on mobile
+      if (topProgressBarRef.current) topProgressBarRef.current.style.width = `${clamped * 100}%`;
+      if (topProgressTextRef.current) topProgressTextRef.current.innerText = `${Math.round(clamped * 100)}%`;
+      if (scrollHintRef.current) scrollHintRef.current.style.opacity = clamped < 0.03 ? '0.8' : '0';
+
+      bottomProgressBarsRef.current.forEach((el, i) => {
+        if (!el) return;
+        const isPastSeg = i < step;
+        const isCurrent = step === i;
+        el.style.width = isPastSeg ? '100%' : isCurrent ? `${progress * 100}%` : '0%';
+        el.style.transition = isPastSeg ? 'width 300ms ease' : 'none';
+        el.style.boxShadow = isCurrent ? `0 0 8px ${steps[i].accent}80` : 'none';
+      });
+
+      textPanelProgressBarsRef.current.forEach((el, i) => {
+        if (!el) return;
+        const isPastSeg = i < step;
+        const isCurrent = step === i;
+        el.style.width = isPastSeg ? '100%' : isCurrent ? `${progress * 100}%` : '0%';
+      });
+
+      headerBarsRef.current.forEach((el, i) => {
+        if (!el) return;
+        const isPastSeg = i < step;
+        const isCurrent = step === i;
+        el.style.width = isPastSeg ? '100%' : isCurrent ? `${progress * 100}%` : '0%';
+      });
     };
 
     void (async () => {
@@ -235,7 +273,9 @@ export default function ProcessSection() {
 
       const triggers: Array<{ kill: () => void }> = [];
       const tier = tierRef.current;
+      const isMobile = tier === 'mobile';
 
+      // ── Section visibility flag (drives CSS header animation) ──
       triggers.push(
         ScrollTrigger.create({
           trigger: sectionRef.current,
@@ -247,51 +287,62 @@ export default function ProcessSection() {
         })
       );
 
-      if (outerRef.current) {
-        // high-end: scrub:true = 1:1 frame-perfect; mid/low: scrub:1 adds 1s smoothing
-        // which reduces how often onUpdate fires and eases decoder pressure
+      // ── ENTRY animation: opacity + y lift (Showcase → Process) ──────────────
+      // scrub = naturally bidirectional. Pure compositor props = zero layout cost.
+      const entryEl = entryWrapRef.current;
+      if (entryEl && sectionRef.current) {
+        gsap.set(entryEl, { opacity: 0, y: isMobile ? 40 : 60 });
+        triggers.push(
+          ScrollTrigger.create({
+            trigger: sectionRef.current,
+            start: 'top 92%',
+            end: 'top 18%',
+            scrub: isMobile ? 1.2 : 0.8,
+            onEnter:     () => { entryEl.style.willChange = 'opacity, transform'; },
+            onLeaveBack: () => { entryEl.style.willChange = 'auto'; },
+            onUpdate: (self) => {
+              const p = self.progress;
+              // Ease-out curve: fast arrival, smooth settle
+              const eased = 1 - Math.pow(1 - p, 2.4);
+              entryEl.style.opacity = String(Math.min(1, eased));
+              const yOff = isMobile ? 40 : 60;
+              entryEl.style.transform = `translateY(${yOff * (1 - eased)}px)`;
+            },
+            onLeave: () => {
+              // Fully settled — stop promoting to its own GPU layer
+              entryEl.style.willChange = 'auto';
+              entryEl.style.opacity = '1';
+              entryEl.style.transform = 'none';
+            },
+          })
+        );
+      }
+
+      if (outerRef.current && stickyRef.current) {
         const scrubValue = tier === 'high' ? true : 1;
+        const scrollDist = steps.length * 120;
 
         triggers.push(
           ScrollTrigger.create({
             trigger: outerRef.current,
             start: 'top top',
-            end: 'bottom bottom',
+            end: `+=${scrollDist}%`,
+            pin: stickyRef.current,
+            pinSpacing: true,
             scrub: scrubValue,
             onUpdate: (self) => updateProgress(self.progress),
           })
         );
 
-        const stickyEl = stickyRef.current;
-        if (stickyEl) {
-          triggers.push(
-            ScrollTrigger.create({
-              trigger: outerRef.current,
-              start: 'bottom 110%',
-              end: 'bottom -8%',
-              scrub: 1.4,
-              onEnter: () => { stickyEl.style.willChange = 'opacity, transform'; },
-              onLeaveBack: () => {
-                stickyEl.style.willChange = 'auto';
-                stickyEl.style.opacity   = '1';
-                stickyEl.style.transform = 'none';
-              },
-              onUpdate: (self) => {
-                const t    = self.progress;
-                const ease = 1 - Math.pow(1 - t, 3);
-                stickyEl.style.opacity   = String(Math.max(0, 1 - ease * 1.15));
-                stickyEl.style.transform = `translateY(${ease * -40}px) scale(${1 - ease * 0.018})`;
-              },
-              onLeave: () => { stickyEl.style.willChange = 'auto'; },
-            })
-          );
-        }
       }
+
+
 
       updateProgress(0);
       ScrollTrigger.refresh();
       cleanup = () => triggers.forEach(t => t.kill());
     })();
+
 
     return () => { mounted = false; cleanup(); };
   }, []);
@@ -311,39 +362,44 @@ export default function ProcessSection() {
       if (videoReadyRef.current) return;
       videoReadyRef.current = true;
       setVideoReady(true);
+
+      // On Android/iOS, setting currentTime won't always render the frame 
+      // unless play() has been invoked at least once to engage the decoder.
+      const playPromise = vid.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => { vid.pause(); }).catch(() => { });
+      }
+
       if (vid.duration && isFinite(vid.duration)) {
         const t = scrollProgRef.current * vid.duration;
         vid.currentTime = t;
         currentTimeRef.current = t;
-        targetTimeRef.current  = t;
+        targetTimeRef.current = t;
       }
     };
 
-    const handlePlay    = () => vid.pause();
-    const handleMeta    = () => { vid.currentTime = 0; };
+    const handlePlay = () => vid.pause();
+    const handleMeta = () => { vid.currentTime = 0; };
     const handleEmptied = () => { videoReadyRef.current = false; setVideoReady(false); };
 
-    vid.addEventListener('play',           handlePlay);
+    vid.addEventListener('play', handlePlay);
     vid.addEventListener('loadedmetadata', handleMeta);
-    vid.addEventListener('loadeddata',     markReady);
-    vid.addEventListener('canplay',        markReady);
+    vid.addEventListener('loadeddata', markReady);
+    vid.addEventListener('canplay', markReady);
     vid.addEventListener('canplaythrough', markReady);
-    vid.addEventListener('emptied',        handleEmptied);
+    vid.addEventListener('emptied', handleEmptied);
 
     return () => {
-      vid.removeEventListener('play',           handlePlay);
+      vid.removeEventListener('play', handlePlay);
       vid.removeEventListener('loadedmetadata', handleMeta);
-      vid.removeEventListener('loadeddata',     markReady);
-      vid.removeEventListener('canplay',        markReady);
+      vid.removeEventListener('loadeddata', markReady);
+      vid.removeEventListener('canplay', markReady);
       vid.removeEventListener('canplaythrough', markReady);
-      vid.removeEventListener('emptied',        handleEmptied);
+      vid.removeEventListener('emptied', handleEmptied);
     };
   }, [videoSrc]);
 
-  const currentAccent    = steps[activeStep].accent;
-  const progressBarWidth = steps.length <= 1
-    ? 100
-    : (activeStep / (steps.length - 1)) * 100 + stepProgress * (100 / (steps.length - 1));
+  const currentAccent = steps[activeStep].accent;
 
   return (
     <section
@@ -356,12 +412,14 @@ export default function ProcessSection() {
         overflowX: 'clip',
       }}
     >
+      {/* ── Entry/Exit animation wrapper — only opacity+transform touched ── */}
+      <div ref={entryWrapRef} style={{ willChange: 'auto' }}>
       {/* ── Section header ── */}
       <div
         className="pt-32 pb-16 px-6 sm:px-14"
         style={{
-          opacity:    sectionVisible ? 1 : 0,
-          transform:  sectionVisible ? 'translateY(0)' : 'translateY(28px)',
+          opacity: sectionVisible ? 1 : 0,
+          transform: sectionVisible ? 'translateY(0)' : 'translateY(28px)',
           transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1), transform 1.2s cubic-bezier(0.16,1,0.3,1)',
           willChange: sectionVisible ? 'auto' : 'opacity, transform',
         }}
@@ -376,10 +434,16 @@ export default function ProcessSection() {
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <h2 style={{ fontSize: 'clamp(2.4rem,6vw,4.5rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 0.95, color: '#F0EDE8' }}>
               The{' '}
-              <span style={{
-                background: 'linear-gradient(135deg, #9A7040 0%, #E8D4A0 40%, #C9A96E 70%, #B8935A 100%)',
-                WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              }}>Way.</span>
+              <span
+                style={{
+                  color: 'transparent',
+                  WebkitTextStroke: '1px rgba(237,233,227,0.78)',
+                  WebkitTextFillColor: 'transparent',
+                  textShadow: 'none',
+                }}
+              >
+                Way.
+              </span>
             </h2>
             <p style={{ fontSize: 13, lineHeight: 1.85, fontWeight: 300, color: 'rgba(237,233,227,0.38)', maxWidth: 320, letterSpacing: '0.01em' }}>
               A four-act transformation that turns your product into infinite visual stories.
@@ -388,24 +452,22 @@ export default function ProcessSection() {
         </div>
       </div>
 
-      {/* ── DESKTOP: Sticky scroll zone ── */}
-      <div ref={outerRef} className="hidden lg:block relative" style={{ height: `${steps.length * 120}vh` }}>
+      {/* ── RESPONSIVE: GSAP Pinned scroll zone ── */}
+      <div ref={outerRef} className="relative w-full">
         <div
           ref={stickyRef}
-          className="sticky top-0 overflow-hidden"
+          className="relative w-full overflow-hidden"
           style={{
-            height: '100vh',
+            height: '100svh',
             background: 'linear-gradient(180deg, #020208 0%, #04040c 50%, #030309 100%)',
-            // willChange promoted only when the exit animation is actually running
-            // (set imperatively in the ScrollTrigger onUpdate below).
             transformOrigin: '50% 40%',
-            contain: 'layout style',   // isolates layout/style recalcs from rest of page
+            contain: 'layout style',
+
           }}
         >
-          {/* Ambient colour — CSS-only transition, no JS cost per frame */}
+          {/* Ambient colour — Uses absolute layer opacity instead of background transition for performance */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            background: `radial-gradient(ellipse 60% 70% at 75% 50%, ${currentAccent}0C, transparent 60%)`,
-            transition: 'background 1.4s ease',
+            background: `radial-gradient(ellipse 60% 70% at 75% 50%, ${currentAccent}15, transparent 60%)`,
           }} />
 
           {/* Fine grid — static, zero runtime cost */}
@@ -417,7 +479,7 @@ export default function ProcessSection() {
           <div className="relative z-10 h-full flex flex-col max-w-[1400px] mx-auto px-14">
 
             {/* ── Step indicator strip ── */}
-            <div className="flex items-center gap-8 pt-7 pb-6 shrink-0">
+            <div className="hidden lg:flex items-center gap-8 pt-7 pb-6 shrink-0">
               {steps.map((s, i) => (
                 <button key={s.number} className="flex items-center gap-3 shrink-0"
                   style={{ background: 'none', border: 'none', padding: 0, cursor: 'default' }}>
@@ -434,8 +496,8 @@ export default function ProcessSection() {
                   {i < steps.length - 1 && (
                     <div className="relative shrink-0" style={{ width: 48, height: 1, marginLeft: 8 }}>
                       <div className="absolute inset-0" style={{ background: 'rgba(201,169,110,0.07)' }} />
-                      <div className="absolute inset-y-0 left-0" style={{
-                        width: i < activeStep ? '100%' : i === activeStep ? `${stepProgress * 100}%` : '0%',
+                      <div ref={el => { headerBarsRef.current[i] = el; }} className="absolute inset-y-0 left-0" style={{
+                        width: i < activeStep ? '100%' : '0%',
                         background: s.accent, opacity: 0.5,
                         transition: i < activeStep ? 'width 400ms ease' : 'none',
                       }} />
@@ -453,22 +515,22 @@ export default function ProcessSection() {
             </div>
 
             {/* Hairline */}
-            <div style={{ height: 1, background: 'rgba(201,169,110,0.06)', flexShrink: 0 }} />
+            <div className="hidden lg:block" style={{ height: 1, background: 'rgba(201,169,110,0.06)', flexShrink: 0 }} />
 
-            {/* ── Main 2-col layout ── */}
-            <div className="flex-1 flex items-stretch gap-16 min-h-0 py-10">
+            {/* ── Main Layout ── */}
+            <div className="flex-1 flex flex-col-reverse lg:flex-row items-stretch gap-8 lg:gap-16 min-h-0 py-6 lg:py-10">
 
-              {/* LEFT — step content panels */}
-              <div className="flex flex-col justify-center w-[38%] shrink-0">
+              {/* TEXT PANELS */}
+              <div className="relative z-30 flex flex-col justify-end lg:justify-center w-full lg:w-[38%] shrink-0 pb-16 lg:pb-0 h-[40vh] lg:h-auto pointer-events-none">
                 <div className="relative">
                   {steps.map((step, i) => {
                     const isActive = activeStep === i;
-                    const isPast   = i < activeStep;
+                    const isPast = i < activeStep;
                     return (
                       <div key={step.number} className="absolute inset-x-0" style={{
                         top: 0,
-                        opacity:    isActive ? 1 : 0,
-                        transform:  isActive ? 'translateY(0px)' : isPast ? 'translateY(-18px)' : 'translateY(22px)',
+                        opacity: isActive ? 1 : 0,
+                        transform: isActive ? 'translateY(0px)' : isPast ? 'translateY(-18px)' : 'translateY(22px)',
                         transition: 'opacity 750ms cubic-bezier(0.16,1,0.3,1), transform 750ms cubic-bezier(0.16,1,0.3,1)',
                         pointerEvents: isActive ? 'auto' : 'none',
                         // Only pay for GPU promotion on the card that is visible
@@ -479,12 +541,12 @@ export default function ProcessSection() {
                           <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase', color: `${step.accent}99` }}>{step.tag}</span>
                         </div>
                         <div style={{ fontSize: 'clamp(6rem,11vw,10rem)', fontWeight: 900, letterSpacing: '-0.06em', lineHeight: 0.85, color: `${step.accent}10`, marginBottom: '-0.15em', userSelect: 'none' }}>{step.number}</div>
-                        <h3 style={{ fontSize: 'clamp(2.8rem,4.8vw,5.2rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 0.9, color: '#F0EDE8', marginBottom: '1.6rem', position: 'relative' }}>
+                        <h3 style={{ fontSize: 'clamp(2.8rem,4.8vw,5.2rem)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 0.9, color: '#F0EDE8', marginBottom: '1.6rem', position: 'relative', textShadow: '0 4px 24px rgba(255,255,255,0.25)' }}>
                           {step.title}
                           <span style={{ display: 'block', fontSize: 'clamp(1rem,1.6vw,1.4rem)', fontWeight: 300, letterSpacing: '0.01em', color: 'rgba(237,233,227,0.35)', marginTop: '0.3em' }}>{step.subtitle}</span>
                         </h3>
-                        <div style={{ height: 1, width: `${stepProgress * 100}%`, background: `linear-gradient(90deg, ${step.accent}60, transparent)`, marginBottom: '1.8rem', transition: 'none' }} />
-                        <p style={{ fontSize: 14, lineHeight: 1.85, fontWeight: 300, color: 'rgba(237,233,227,0.5)', letterSpacing: '0.01em', maxWidth: 400, marginBottom: '2rem' }}>{step.description}</p>
+                        <div ref={el => { textPanelProgressBarsRef.current[i] = el; }} style={{ height: 1, width: '0%', background: `linear-gradient(90deg, ${step.accent}60, transparent)`, marginBottom: '1.8rem', transition: 'none' }} />
+                        <p style={{ fontSize: 14, lineHeight: 1.85, fontWeight: 400, color: 'rgba(237,233,227,0.85)', letterSpacing: '0.01em', maxWidth: 400, marginBottom: '2rem', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>{step.description}</p>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 999, background: `${step.accent}0A`, border: `1px solid ${step.accent}22` }}>
                           <span style={{ width: 4, height: 4, borderRadius: '50%', background: step.accent, flexShrink: 0 }} />
                           <span style={{ fontSize: 11, fontWeight: 500, color: step.accent, letterSpacing: '0.04em' }}>{step.detail}</span>
@@ -496,8 +558,8 @@ export default function ProcessSection() {
                   <div style={{ visibility: 'hidden', pointerEvents: 'none' }}>
                     <div style={{ marginBottom: '2rem', height: 20 }} />
                     <div style={{ fontSize: 'clamp(6rem,11vw,10rem)', lineHeight: 0.85, marginBottom: '-0.15em' }}>00</div>
-                    <div style={{ fontSize: 'clamp(2.8rem,4.8vw,5.2rem)', lineHeight: 0.9, marginBottom: '1.6rem' }}>
-                      Digital Twin<span style={{ display: 'block', fontSize: 'clamp(1rem,1.6vw,1.4rem)', marginTop: '0.3em' }}>Product Capture</span>
+                    <div style={{ fontSize: 'clamp(2.5rem,4.8vw,5.2rem)', lineHeight: 0.9, marginBottom: '1.6rem' }}>
+                      Digital Twin<span style={{ display: 'block', fontSize: 'clamp(0.9rem,1.6vw,1.4rem)', marginTop: '0.3em' }}>Product Capture</span>
                     </div>
                     <div style={{ height: 1, marginBottom: '1.8rem' }} />
                     <p style={{ fontSize: 14, lineHeight: 1.85, maxWidth: 400, marginBottom: '2rem' }}>
@@ -507,34 +569,35 @@ export default function ProcessSection() {
                   </div>
                 </div>
                 {/* Progress bar */}
-                <div style={{ marginTop: '3rem', display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div className="hidden lg:flex" style={{ marginTop: '3rem', alignItems: 'center', gap: 16 }}>
                   <div style={{ flex: 1, height: 1, borderRadius: 999, overflow: 'hidden', background: 'rgba(201,169,110,0.07)' }}>
-                    <div style={{
+                    <div ref={topProgressBarRef} style={{
                       height: '100%', borderRadius: 999,
-                      width: `${progressBarWidth}%`,
+                      width: `0%`,
                       background: `linear-gradient(90deg, ${steps[0].accent}55, ${currentAccent})`,
-                      transition: 'width 80ms linear, background 800ms ease',
-                      boxShadow: `0 0 10px ${currentAccent}40`,
+                      transition: 'width 80ms linear',
                     }} />
                   </div>
-                  <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.15em', color: 'rgba(201,169,110,0.3)' }}>
-                    {Math.round(progressBarWidth)}%
+                  <span ref={topProgressTextRef} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.15em', color: 'rgba(201,169,110,0.3)' }}>
+                    0%
                   </span>
                 </div>
               </div>
 
-              {/* RIGHT — video panel */}
-              <div className="flex-1 relative" style={{ minHeight: 0 }}>
-                <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: 6 }}>
+              {/* VIDEO PANEL */}
+              <div className="absolute inset-0 lg:relative lg:flex-1" style={{ minHeight: 0 }}>
+                <div className="absolute inset-0 overflow-hidden lg:rounded-md">
+
+                  {/* Mobile dark gradient overlay for text legibility */}
+                  <div className="lg:hidden absolute inset-0 pointer-events-none z-10" style={{ background: 'linear-gradient(to top, rgba(2,2,8,0.98) 0%, rgba(2,2,8,0.85) 15%, rgba(2,2,8,0.5) 45%, transparent 100%)' }} />
                   {/* Corner brackets */}
                   {(['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'] as const).map((pos, ci) => (
                     <div key={ci} className={`absolute ${pos} z-20 pointer-events-none`} style={{
                       width: 18, height: 18,
-                      borderTop:    ci < 2  ? `1px solid ${currentAccent}50` : 'none',
+                      borderTop: ci < 2 ? `1px solid ${currentAccent}50` : 'none',
                       borderBottom: ci >= 2 ? `1px solid ${currentAccent}50` : 'none',
-                      borderLeft:   ci % 2 === 0 ? `1px solid ${currentAccent}50` : 'none',
-                      borderRight:  ci % 2 === 1 ? `1px solid ${currentAccent}50` : 'none',
-                      transition: 'border-color 800ms ease',
+                      borderLeft: ci % 2 === 0 ? `1px solid ${currentAccent}50` : 'none',
+                      borderRight: ci % 2 === 1 ? `1px solid ${currentAccent}50` : 'none',
                     }} />
                   ))}
 
@@ -554,16 +617,16 @@ export default function ProcessSection() {
                     style={{
                       width: '100%', height: '100%', objectFit: 'cover', display: 'block',
                       transform: 'translateZ(0)',          // own compositor layer
-                      filter: 'saturate(0.78) brightness(0.82)',
                     }}
                   />
 
                   {/* Overlays */}
+                  {/* Simulated brightness/saturation reduction via overlay */}
+                  <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(5,5,8,0.25)' }} />
                   <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to right, rgba(5,5,8,0.5) 0%, transparent 30%)' }} />
                   <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(5,5,8,0.65) 0%, transparent 40%)' }} />
                   <div className="absolute inset-0 pointer-events-none" style={{
-                    background: `radial-gradient(ellipse 70% 55% at 60% 35%, ${currentAccent}12, transparent 65%)`,
-                    mixBlendMode: 'screen', transition: 'background 1.2s ease',
+                    background: `radial-gradient(ellipse 70% 55% at 60% 35%, ${currentAccent}10, transparent 65%)`,
                   }} />
 
                   {/* Loading spinner */}
@@ -581,9 +644,9 @@ export default function ProcessSection() {
                       return (
                         <div key={s.number} className="flex-1 relative overflow-hidden"
                           style={{ height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.08)' }}>
-                          <div style={{
+                          <div ref={el => { bottomProgressBarsRef.current[i] = el; }} style={{
                             position: 'absolute', inset: 0,
-                            width: isPastSeg ? '100%' : isCurrent ? `${stepProgress * 100}%` : '0%',
+                            width: isPastSeg ? '100%' : isCurrent ? '0%' : '0%',
                             background: s.accent, opacity: 0.8, borderRadius: 1,
                             transition: isPastSeg ? 'width 300ms ease' : 'none',
                             boxShadow: isCurrent ? `0 0 8px ${s.accent}80` : 'none',
@@ -599,36 +662,32 @@ export default function ProcessSection() {
                     <span style={{ fontSize: 48, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, color: `${currentAccent}18`, transition: 'color 600ms ease', userSelect: 'none' }}>{steps[activeStep].number}</span>
                   </div>
 
-                  <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: `inset 0 0 0 1px ${currentAccent}18`, borderRadius: 6, transition: 'box-shadow 800ms ease' }} />
+                  <div className="hidden lg:block absolute inset-0 pointer-events-none" style={{ boxShadow: `inset 0 0 0 1px ${currentAccent}18`, borderRadius: 6 }} />
                 </div>
 
                 {/* Left accent bar */}
-                <div style={{ position: 'absolute', left: -20, top: '15%', bottom: '15%', width: 1, background: `linear-gradient(to bottom, transparent, ${currentAccent}40, transparent)`, transition: 'background 800ms ease' }} />
+                <div className="hidden lg:block" style={{ position: 'absolute', left: -20, top: '15%', bottom: '15%', width: 1, background: `linear-gradient(to bottom, transparent, ${currentAccent}40, transparent)` }} />
               </div>
             </div>
           </div>
 
           {/* Scroll hint */}
-          <div className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 pointer-events-none"
-            style={{ opacity: scrollProgress < 0.03 ? 0.8 : 0, transition: 'opacity 600ms ease' }}>
+          <div ref={scrollHintRef} className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 pointer-events-none"
+            style={{ opacity: 0.8, transition: 'opacity 600ms ease' }}>
             <span style={{ fontSize: 8, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(201,169,110,0.4)', fontWeight: 500 }}>scroll to explore</span>
             <div style={{ width: 1, height: 24, background: 'linear-gradient(to bottom, rgba(201,169,110,0.5), transparent)', animation: 'proc-pulse 2.2s ease-in-out infinite' }} />
           </div>
         </div>
       </div>
 
-      {/* ── MOBILE — zero JS animation, zero video, pure CSS stagger ── */}
-      <div className="lg:hidden px-5 pb-28 pt-4">
-        <div className="flex flex-col gap-6">
-          {steps.map((step, i) => <MobileStepCard key={step.number} step={step} index={i} />)}
-        </div>
-      </div>
+
 
       <style>{`
         @keyframes proc-pulse { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.2; } }
         @keyframes proc-spin  { to { transform: rotate(360deg); } }
         @keyframes proc-card-in { to { opacity: 1; transform: translateY(0); } }
       `}</style>
+      </div>{/* end entryWrapRef */}
     </section>
   );
 }
@@ -645,7 +704,7 @@ interface StepData {
    contain:content isolates this card from the rest of the layout tree.
 ──────────────────────────────────────────────────────────────────────────────── */
 function MobileStepCard({ step, index }: { step: StepData; index: number }) {
-  const ref     = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [vis, setVis] = useState(false);
 
   useEffect(() => {
@@ -663,7 +722,7 @@ function MobileStepCard({ step, index }: { step: StepData; index: number }) {
     <div
       ref={ref}
       style={{
-        borderRadius: 16, 
+        borderRadius: 16,
         background: `linear-gradient(145deg, rgba(16,16,24,0.9), rgba(4,4,8,0.95))`,
         boxShadow: `0 8px 32px rgba(0,0,0,0.5), inset 0 0 0 1px ${step.accent}20`,
         backdropFilter: 'blur(16px)',

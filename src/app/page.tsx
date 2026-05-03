@@ -12,7 +12,7 @@ import ShowcaseSection from '@/app/components/ShowcaseSection';
 import TestimonialsSection from '@/app/components/TestimonialsSection';
 import FAQSection from '@/app/components/FAQSection';
 import HowItWorksSection from '@/app/components/HowItWorksSection';
-import VideoShowcase from '@/app/components/VideoShowcase';
+import ZoomParallaxSection from '@/app/components/ZoomParallaxSection';
 import ScrollAnimationInit from '@/app/components/ScrollAnimationInit';
 import LazySection from '@/app/components/LazySection';
 
@@ -42,8 +42,9 @@ export default function HomePage() {
       {/* 2. Services — first section below fold, eager */}
       <ServicesSection />
 
-      {/* 3. Showcase — lazy on mobile (heavy media) */}
-      <LazySection minHeight="600px">
+      {/* 3. Showcase — lazy on mobile (heavy media). 
+          Mounted 800px ahead to avoid jank when transitioning from Services. */}
+      <LazySection minHeight="600px" rootMargin="800px">
         <ShowcaseSection />
       </LazySection>
 
@@ -72,9 +73,9 @@ export default function HomePage() {
         <FAQSection />
       </LazySection>
 
-      {/* 9. Video CTA */}
-      <LazySection minHeight="60vh">
-        <VideoShowcase />
+      {/* 9. Zoom Parallax CTA */}
+      <LazySection minHeight="300vh">
+        <ZoomParallaxSection />
       </LazySection>
 
       <Footer />
